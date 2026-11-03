@@ -17,6 +17,7 @@ import {
   HeartPulse,
   Zap,
   RotateCcw,
+  AlertCircle,
 } from 'lucide-react';
 import { LearnerProfile, PresetDoubt } from '../types';
 import { VoiceInputButton } from './VoiceInputButton';
@@ -77,6 +78,8 @@ export const ReasoningConsole: React.FC<ReasoningConsoleProps> = ({
   const [isDragOver, setIsDragOver] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const doubtInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const [inputError, setInputError] = useState<string | null>(null);
 
   const isPureHindi = (inputLang.includes('Hindi') || inputLang.includes('हिंदी')) && (!inputLang.includes('Hinglish') && !inputLang.includes('हिंग्लिश'));
 
@@ -85,7 +88,7 @@ export const ReasoningConsole: React.FC<ReasoningConsoleProps> = ({
     ? 'यहाँ किसी भी विषय का प्रश्न लिखें, बोलें, पेस्ट करें (Ctrl+V) या फ़ोटो अपलोड करें...'
     : 'Type, dictate, paste image (Ctrl+V), or upload photo of problem/figure...';
 
-  const lblSteps = isPureHindi ? 'आपका प्रारंभिक तर्क / विचार' : 'Your Initial Thinking & Attempt';
+  const lblSteps = isPureHindi ? 'आपका प्रारंभिक तर्क / विचार (वैकल्पिक)' : 'Your Initial Thinking & Attempt (Optional)';
   const phSteps = isPureHindi
     ? 'बताइए आपने इस प्रश्न को कैसे शुरू किया, या कौन सा चरण समझ नहीं आ रहा...'
     : 'Explain how you started thinking about it, or which step feels confusing...';
@@ -100,14 +103,20 @@ export const ReasoningConsole: React.FC<ReasoningConsoleProps> = ({
     setDoubt('🔍 Scanning problem figure & equations with Vision Model...');
     try {
       const result = await processImageOcr(file);
+      if (!result.problemStatement || !result.problemStatement.trim()) {
+        alert('No readable text was detected in the image. Please enter or dictate your question.');
+        setDoubt('');
+        return;
+      }
       // 2. Fill "Your Problem" textarea with text understood from figure!
       setDoubt(result.problemStatement);
       setSteps(''); // Clear previous problem's thinking steps
       setOcrMathEquations(result.latexEquations || []);
       setScannedFileName(result.fileName || file.name);
+      setInputError(null);
       setShowElicitationPrompt(true);
-    } catch (err) {
-      alert('Failed to scan image. Please enter your problem statement.');
+    } catch (err: any) {
+      alert(err?.message || 'Failed to scan image. Please enter your problem statement.');
       setDoubt('');
     } finally {
       setIsProcessingOcr(false);
@@ -155,14 +164,11 @@ export const ReasoningConsole: React.FC<ReasoningConsoleProps> = ({
 
   const handleTriggerDiagnose = () => {
     if (!doubt.trim()) {
-      alert('Please enter or dictate a question first.');
+      setInputError('Please enter, dictate, or scan a problem statement first.');
+      doubtInputRef.current?.focus();
       return;
     }
-    // If student did not provide an intuition, request first-principles derivation without polluting with dummy assumptions
-    if (!steps.trim()) {
-      const defaultAttempt = 'Formulate step-by-step resolution from first principles.';
-      setSteps(defaultAttempt);
-    }
+    setInputError(null);
     onDiagnose();
   };
 
@@ -292,6 +298,13 @@ export const ReasoningConsole: React.FC<ReasoningConsoleProps> = ({
             </div>
           </div>
 
+          {inputError && (
+            <div className="mb-2 p-2 rounded-lg bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2 animate-in fade-in duration-150">
+              <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+              <span>{inputError}</span>
+            </div>
+          )}
+
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -301,13 +314,19 @@ export const ReasoningConsole: React.FC<ReasoningConsoleProps> = ({
             }`}
           >
             <textarea
+              ref={doubtInputRef}
               rows={4}
               value={doubt}
-              onChange={(e) => setDoubt(e.target.value)}
+              onChange={(e) => {
+                setDoubt(e.target.value);
+                if (inputError && e.target.value.trim()) setInputError(null);
+              }}
               onPaste={handlePaste}
               placeholder={phDoubt}
               disabled={isProcessingOcr}
-              className="w-full text-xs text-zinc-100 bg-zinc-950/60 border border-zinc-800 rounded-lg p-2.5 focus:outline-none focus:border-emerald-500/60 placeholder-zinc-600 transition-all resize-y font-sans leading-relaxed"
+              className={`w-full text-xs text-zinc-100 bg-zinc-950/60 border rounded-lg p-2.5 focus:outline-none placeholder-zinc-600 transition-all resize-y font-sans leading-relaxed ${
+                inputError ? 'border-rose-500/60 focus:border-rose-400' : 'border-zinc-800 focus:border-emerald-500/60'
+              }`}
             />
             {isDragOver && (
               <div className="absolute inset-0 bg-emerald-950/80 border-2 border-dashed border-emerald-400 rounded-lg flex items-center justify-center text-xs text-emerald-300 pointer-events-none font-medium">
@@ -438,9 +457,9 @@ export const ReasoningConsole: React.FC<ReasoningConsoleProps> = ({
         {/* Action Button */}
         <button
           onClick={handleTriggerDiagnose}
-          disabled={isLoading || !doubt.trim()}
+          disabled={isLoading}
           className={`w-full h-8 rounded-lg font-medium text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
-            isLoading || !doubt.trim()
+            isLoading
               ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
               : 'bg-emerald-500 hover:bg-emerald-400 text-zinc-950 shadow-md shadow-emerald-500/20 active:scale-[0.99]'
           }`}

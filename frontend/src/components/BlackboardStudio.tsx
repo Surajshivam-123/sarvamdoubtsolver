@@ -102,8 +102,21 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
     if (audioBase64 && audioRef.current) {
       audioRef.current.src = `data:audio/wav;base64,${audioBase64}`;
       audioRef.current.load();
-      setIsPlaying(false);
       setCurrentTime(0);
+
+      // Attempt automatic narration playback
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsPlaying(true);
+          })
+          .catch((err) => {
+            // Browser autoplay policy might require a direct user gesture
+            console.log('Autoplay deferred by browser policy (user gesture required):', err);
+            setIsPlaying(false);
+          });
+      }
     } else if (!audioBase64 && audioRef.current) {
       audioRef.current.pause();
       audioRef.current.removeAttribute('src');
@@ -457,18 +470,53 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
         </div>
 
         {/* Center: Audio Controls Bar */}
-        <div className="flex items-center gap-2.5 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={togglePlay}
-            className="w-7 h-7 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 flex items-center justify-center font-bold shadow-[0_0_12px_rgba(16,185,129,0.25)] transition-all duration-150 hover:scale-105 active:scale-95 cursor-pointer"
-            title={isPlaying ? 'Pause Socratic Audio' : 'Play Socratic Audio'}
+            disabled={!audioBase64}
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-md transition-all duration-150 cursor-pointer ${
+              isPlaying
+                ? 'bg-amber-500 hover:bg-amber-400 text-zinc-950 shadow-amber-500/20'
+                : audioBase64
+                ? 'bg-emerald-500 hover:bg-emerald-400 text-zinc-950 shadow-[0_0_12px_rgba(16,185,129,0.3)] animate-pulse'
+                : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+            }`}
+            title={isPlaying ? 'Pause Narration Audio' : audioBase64 ? 'Play Narration Audio' : (audioMsg || 'Voice narration unavailable')}
           >
             {isPlaying ? (
-              <Pause className="w-3.5 h-3.5 fill-current" />
+              <>
+                <Pause className="w-3.5 h-3.5 fill-current" />
+                <span className="hidden sm:inline text-[11px]">Pause Voice</span>
+              </>
             ) : (
-              <Play className="w-3.5 h-3.5 ml-0.5 fill-current" />
+              <>
+                <Play className="w-3.5 h-3.5 ml-0.5 fill-current" />
+                <span className="hidden sm:inline text-[11px]">{audioBase64 ? 'Play Voice' : 'No Voice'}</span>
+              </>
             )}
           </button>
+
+          {audioBase64 ? (
+            <div
+              className={`hidden lg:flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${
+                isRealAudio
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  : 'bg-zinc-900 border-zinc-700 text-zinc-400'
+              }`}
+              title={audioMsg || 'Sarvam AI Narration Synthesizer'}
+            >
+              <Volume2 className={`w-3 h-3 ${isPlaying ? 'animate-bounce text-emerald-300' : ''}`} />
+              <span className="truncate max-w-[130px]">{isRealAudio ? 'Sarvam Voice' : 'Audio Note'}</span>
+            </div>
+          ) : (
+            <div
+              className="hidden lg:flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-900 border border-zinc-800 text-zinc-500"
+              title={audioMsg || 'Voice narration is generated via Sarvam AI TTS'}
+            >
+              <Volume2 className="w-3 h-3 text-zinc-600" />
+              <span className="truncate max-w-[130px]">Voice Inactive</span>
+            </div>
+          )}
 
           <div className="hidden md:flex items-center gap-2">
             <span className="font-mono text-xs text-zinc-400 w-8 text-right">
@@ -481,7 +529,7 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
               step={0.1}
               value={currentTime}
               onChange={handleSeek}
-              className="w-24 lg:w-32 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-emerald-400"
+              className="w-20 lg:w-28 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-emerald-400"
             />
             <span className="font-mono text-xs text-zinc-500 w-8">
               {formatTime(duration || 16)}

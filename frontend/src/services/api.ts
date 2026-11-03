@@ -134,6 +134,11 @@ export async function diagnoseDoubt(payload: {
   tts_model?: string;
   sarvam_api_key?: string;
 }): Promise<DiagnosisResponse> {
+  const trimmedDoubt = (payload.doubt || '').trim();
+  if (!trimmedDoubt) {
+    throw new Error('Please enter or dictate a question or problem statement first.');
+  }
+
   const profile = lmLoadProfile(payload.student_id);
 
   // 1. Solve dynamically using Sarvam AI Sovereign LLM (sarvam-105b-conversations)
@@ -200,10 +205,12 @@ export async function diagnoseDoubt(payload: {
   );
 
   // 7. Validity score calculation
-  const derailmentStep = diagnosis.derailment_step || 2;
+  const hasStudentAttempt = Boolean(payload.steps && payload.steps.trim());
+  const derailmentStep = hasStudentAttempt ? (diagnosis.derailment_step || 2) : 1;
   const totalSteps = Math.max((diagnosis.student_nodes || []).length, derailmentStep, 2);
-  let validPct = Math.round(((derailmentStep - 1) / totalSteps) * 100);
-  validPct = Math.max(35, Math.min(validPct, 85));
+  let validPct = hasStudentAttempt
+    ? Math.max(35, Math.min(Math.round(((derailmentStep - 1) / totalSteps) * 100), 85))
+    : 100;
 
   // 8. Generate Digital Teacher Blackboard Schedule & Divergence Graph Topology
   const boardSolve: BoardSolveResponse = {

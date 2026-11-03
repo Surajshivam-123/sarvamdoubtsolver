@@ -183,21 +183,14 @@ export const App: React.FC = () => {
 
   const handleManualDiagnose = () => {
     if (!doubt.trim()) {
-      alert('Please provide a problem statement first.');
+      alert('Please enter or dictate a question or problem statement first.');
       return;
-    }
-    const currentSteps = steps.trim()
-      ? steps
-      : 'Initial step-by-step formulation of governing principles and boundary constraints.';
-
-    if (!steps.trim()) {
-      setSteps(currentSteps);
     }
 
     runDiagnosis({
-      doubt,
-      steps: currentSteps,
-      breakdown,
+      doubt: doubt.trim(),
+      steps: steps.trim(),
+      breakdown: breakdown.trim(),
       studentId,
       inputLang,
       outputLang,

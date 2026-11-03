@@ -226,25 +226,43 @@ export function extractEquationsAndValues(text: string): {
  */
 export function detectDomainFromText(text: string): string {
   const t = text.toLowerCase();
-  if (t.includes('resistor') || t.includes('circuit') || t.includes('voltage') || t.includes('current') || t.includes('ohm') || t.includes('battery')) {
-    return 'Physics & Electric Circuits';
+  if (t.includes('algorithm') || t.includes('stack') || t.includes('array') || t.includes('tree') || t.includes('hash') || t.includes('binary search') || t.includes('parenthes') || t.includes('recursion')) {
+    return 'Computer Science & Algorithms';
   }
-  if (t.includes('projectile') || t.includes('trajectory') || t.includes('incline') || t.includes('velocity') || t.includes('acceleration') || t.includes('friction') || t.includes('pulley') || t.includes('force') || t.includes('momentum') || t.includes('mass') || t.includes('gravity')) {
-    return 'Physics & Classical Mechanics';
+  if (t.includes('constitution') || t.includes('article') || t.includes('statute') || t.includes('amendment') || t.includes('contract') || t.includes('tort') || t.includes('court') || t.includes('fundamental right')) {
+    return 'Law & Constitutional Civics';
   }
-  if (t.includes('derivative') || t.includes('integral') || t.includes('calculus') || t.includes('matrix') || t.includes('eigen') || t.includes('limit') || t.includes('polynomial')) {
-    return 'Mathematics & Calculus';
+  if (t.includes('market') || t.includes('inflation') || t.includes('gdp') || t.includes('price ceiling') || t.includes('deadweight loss') || t.includes('elasticity') || t.includes('equilibrium price') || t.includes('surplus')) {
+    return 'Economics & Markets';
   }
-  if (t.includes('equilibrium') || t.includes('reaction') || t.includes('moles') || t.includes('acid') || t.includes('base') || t.includes('ph') || t.includes('catalyst')) {
-    return 'Chemistry & Thermodynamics';
+  if (t.includes('history') || t.includes('treaty') || t.includes('war') || t.includes('empire') || t.includes('revolution') || t.includes('colonial') || t.includes('dynasty')) {
+    return 'World History & Geopolitical Causality';
   }
-  if (t.includes('dna') || t.includes('gene') || t.includes('cell') || t.includes('allele') || t.includes('protein')) {
+  if (t.includes('poem') || t.includes('shakespeare') || t.includes('hamlet') || t.includes('macbeth') || t.includes('metaphor') || t.includes('tragic flaw') || t.includes('protagonist') || t.includes('soliloquy')) {
+    return 'Literature & Dramatic Theory';
+  }
+  if (t.includes('fallacy') || t.includes('syllogism') || t.includes('epistemology') || t.includes('affirming the consequent') || t.includes('ethics') || t.includes('morality')) {
+    return 'Philosophy & Critical Thinking';
+  }
+  if (t.includes('dna') || t.includes('gene') || t.includes('cell') || t.includes('allele') || t.includes('protein') || t.includes('chromosome') || t.includes('mendel') || t.includes('recombination')) {
     return 'Biology & Life Sciences';
   }
-  if (t.includes('algorithm') || t.includes('stack') || t.includes('array') || t.includes('tree') || t.includes('hash')) {
-    return 'Computer Science & Data Structures';
+  if (t.includes('drug') || t.includes('pharmacology') || t.includes('dosage') || t.includes('half-life') || t.includes('receptor') || t.includes('clearance') || t.includes('pathology')) {
+    return 'Medicine & Pharmacology';
   }
-  return 'Academic & Scientific Inquiry';
+  if (t.includes('derivative') || t.includes('integral') || t.includes('calculus') || t.includes('matrix') || t.includes('eigen') || t.includes('limit') || t.includes('polynomial') || t.includes('differentiat')) {
+    return 'Mathematics & Calculus';
+  }
+  if (t.includes('equilibrium constant') || t.includes('le chatelier') || t.includes('chemical reaction') || t.includes('moles') || t.includes('acid') || t.includes('base') || t.includes('ph') || t.includes('catalyst')) {
+    return 'Chemistry & Chemical Sciences';
+  }
+  if (t.includes('resistor') || t.includes('electric circuit') || t.includes('ohm\'s law') || t.includes('voltage drop') || t.includes('amperes') || t.includes('kirchhoff')) {
+    return 'Physics & Electric Circuits';
+  }
+  if (t.includes('projectile motion') || t.includes('trajectory angle') || t.includes('inclined plane') || t.includes('kinematics') || t.includes('friction coefficient') || t.includes('free fall')) {
+    return 'Physics & Classical Mechanics';
+  }
+  return 'Multi-Disciplinary Academic Inquiry';
 }
 
 /**
@@ -263,7 +281,7 @@ async function synthesizeWithSarvamLlm(
   if (!apiKey) return null;
 
   try {
-    const prompt = `You are a highly advanced Multimodal Physics Engine and Reasoning Agent.
+    const prompt = `You are a highly advanced Multimodal Academic Analysis and Reasoning Agent across all disciplines (Computer Science, Humanities, Social Sciences, Law, Sciences, and Mathematics).
 Input image metadata:
 - File Name: "${fileName}"
 - Extracted OCR raw characters: """${rawText.slice(0, 1500)}"""
@@ -273,22 +291,22 @@ Objective: Execute Phase 1: Visual & Diagrammatic Analysis (Triggered instantly 
 Your immediate goal is to map the scene into a structured text format. Do NOT solve the problem yet! (State Isolation).
 
 Instructions:
-1. OCR Text Extraction: Extract and preserve all visible textual characters, numbers, variables, symbols, and standard units within the image. Fix scanning typos.
-2. Diagrammatic Comprehension: Look past text to analyze structural configurations. Identify boundaries, coordinate grids, free-body variables, and directional vectors.
-3. Physical Object Mapping: Track geometry and physical relationships. Map vectors (forces, velocity, acceleration fields), system components (pulleys, inclined planes, springs, electric fields, circuits, waves), and abstract visual states.
-4. No-String Images constraint: If the image contains zero written text/strings and consists solely of visual diagrams or real-world experimental setups, completely translate the visual scene into an analytical descriptive paragraph describing the physical configuration, objects, and target parameter.
+1. OCR Text Extraction: Extract and preserve all visible textual characters, numbers, variables, symbols, code, and definitions within the image. Fix scanning typos.
+2. Diagrammatic Comprehension: Analyze structural configurations, flowcharts, graphs, coordinate axes, diagrams, or textual layout.
+3. Domain Element Mapping: Track the core entities and relationships specific to the subject domain (e.g. data structures/code in CS, market curves in Economics, biological structures, legal articles, historical timelines, mathematical expressions, or physical systems).
+4. No-String Images constraint: If the image contains zero written text/strings and consists solely of visual diagrams or real-world experimental setups, completely translate the visual scene into an analytical descriptive paragraph describing the configuration, objects, and target question.
 5. Structural Output Generation: Synthesize your visual findings directly into a uniform string. Format it EXACTLY under the header titled '### Problem Section'. Combine the raw question with a literal, descriptive breakdown of the image.
 
 Output Format strictly as:
 ### Problem Section
 [Problem Statement and formatted MCQ options (A), (B), (C), (D) if present]
 
-**Visual & Diagrammatic Analysis:**
-- Configuration: [Literal descriptive breakdown of the structural components and geometry]
-- Physical Entities & Vectors: [Masses, forces, fields, coordinates, or circuit elements]
-- Target Physical Quantity: [Explicitly state what quantity is to be calculated]
+**Visual & Conceptual Breakdown:**
+- Configuration / Context: [Literal descriptive breakdown of the structural components, figure, or document]
+- Key Entities & Relationships: [Variables, parameters, clauses, components, or relationships identified]
+- Target Objective: [Explicitly state what question, parameter, or outcome is to be resolved]
 
-Return ONLY this text. Never output formulas, derivations, or solutions in Phase 1!`;
+Return ONLY this text. Never output derivations or solutions in Phase 1!`;
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 12000);
@@ -304,7 +322,7 @@ Return ONLY this text. Never output formulas, derivations, or solutions in Phase
         messages: [
           {
             role: 'system',
-            content: 'You are an advanced Multimodal Physics Engine. Format findings strictly under ### Problem Section. Do not solve yet.',
+            content: 'You are an advanced Multimodal Academic Analysis and Reasoning Agent. Format findings strictly under ### Problem Section. Do not solve yet.',
           },
           { role: 'user', content: prompt },
         ],
@@ -354,17 +372,16 @@ export function synthesizeFigureProblem(
     .replace(/\|\s*/g, ' ')
     .trim();
 
-  let body = '';
-  if (cleaned.length > 15) {
-    body = cleaned;
-    if (options.length >= 2 && !/options?:/i.test(body)) {
-      body += `\n\nOptions:\n${options.join('\n')}`;
-    }
-  } else {
-    body = `Physical system and diagram schematic uploaded from "${fileName}".`;
+  if (cleaned.length <= 15) {
+    return '';
   }
 
-  return `### Problem Section\n${body}\n\n**Visual & Diagrammatic Analysis:**\n- Configuration: Visual diagram and schematic mapped from ${fileName}.\n- Physical Entities: Identified parameters and physical geometry from image.\n- Target Quantity: Determine the physical quantities and evaluate the target state.`;
+  let body = cleaned;
+  if (options.length >= 2 && !/options?:/i.test(body)) {
+    body += `\n\nOptions:\n${options.join('\n')}`;
+  }
+
+  return `### Problem Section\n${body}`;
 }
 
 /**
@@ -421,9 +438,13 @@ export async function processImageOcr(file: File): Promise<OcrExtractionResult> 
   // 6. Execute Phase 1: Visual & Diagrammatic Analysis via Sarvam AI Sovereign LLM
   let naturalProblemText = await synthesizeWithSarvamLlm(rawText, options, fileName);
 
-  // 7. Fallback to clean deterministic reconstruction if offline or LLM unavailable
+  // 7. Deterministic reconstruction if offline or LLM unavailable
   if (!naturalProblemText) {
     naturalProblemText = synthesizeFigureProblem(rawText, options, fileName);
+  }
+
+  if (!naturalProblemText && !rawText.trim()) {
+    throw new Error('No readable text or problem statement was detected in this image. Please type or dictate your question.');
   }
 
   // Construct figure interpretation description based on actual text

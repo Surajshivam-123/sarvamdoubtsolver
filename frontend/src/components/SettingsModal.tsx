@@ -141,7 +141,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               ) : (
                 <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-400 bg-amber-950/40 px-2.5 py-0.5 rounded-full border border-amber-500/30">
                   <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
-                  Harmonic Wave Fallback
+                  Key Required
                 </span>
               )}
             </div>

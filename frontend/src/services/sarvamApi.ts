@@ -23,7 +23,7 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
   'Tamil (தமிழ்)': { code: 'ta-IN', speaker: 'gokul', name: 'Tamil (தமிழ்)' },
   'Telugu (తెలుగు)': { code: 'te-IN', speaker: 'kavitha', name: 'Telugu (తెలుగు)' },
   'Gujarati (ગુજરાતી)': { code: 'gu-IN', speaker: 'pooja', name: 'Gujarati (ગુજરાતી)' },
-  'Kannada (ಕನ್ನಡ)': { code: 'kn-IN', speaker: 'chaitra', name: 'Kannada (ಕನ್ನಡ)' },
+  'Kannada (ಕನ್ನಡ)': { code: 'kn-IN', speaker: 'shreya', name: 'Kannada (ಕನ್ನಡ)' },
   'Malayalam (മലയാളം)': { code: 'ml-IN', speaker: 'gokul', name: 'Malayalam (മലയാളം)' },
   'Punjabi (ਪੰਜਾਬੀ)': { code: 'pa-IN', speaker: 'anand', name: 'Punjabi (ਪੰਜਾਬੀ)' },
 };
@@ -34,12 +34,13 @@ export const SPEAKER_ALIASES: Record<string, string> = {
   amol: 'soham',
   amartya: 'roopa',
   pavithra: 'gokul',
+  chaitra: 'shreya',
 };
 
 export const MODEL_OPTIONS = ['bulbul:v3', 'bulbul:v4-flash', 'bulbul:v1'];
 
 export const ALL_SPEAKERS = [
-  'ritu', 'aditya', 'simran', 'soham', 'roopa', 'gokul', 'kavitha', 'pooja', 'chaitra', 'anand', 'priya'
+  'ritu', 'aditya', 'simran', 'soham', 'roopa', 'gokul', 'kavitha', 'pooja', 'shreya', 'anand', 'priya'
 ];
 
 declare const __SARVAM_API_KEY__: string | undefined;
@@ -324,17 +325,30 @@ export async function synthesizeSpeechSarvam(
   const effectiveKey = (apiKey && apiKey.trim()) || getStoredApiKey();
 
   if (!effectiveKey) {
-    const fallback = generateFallbackAudioBase64();
     return {
-      audioBase64: fallback,
-      statusMsg: 'ℹ Acoustic Wave Synthesizer active. Add your Sarvam API Key in Settings for live Indian language bulbul voice narration.',
+      audioBase64: '',
+      statusMsg: '⚠️ Sarvam API Key missing. Add your API key in Settings for voice narration.',
       isReal: false,
     };
   }
 
-  const cleanText = sanitizeLatexForSpeech(text);
-  const chunks = splitIntoAudioChunks(cleanText, 420);
+  const cleanText = sanitizeLatexForSpeech(text || '');
+  // Sarvam TTS enforces a maximum 500 characters per item in `inputs`
+  const rawChunks = splitIntoAudioChunks(cleanText, 380);
+  const validChunks = rawChunks
+    .map((c) => c.trim())
+    .filter((c) => c.length > 0 && c.length <= 480);
+
+  const chunks = validChunks.length > 0
+    ? validChunks
+    : [cleanText.slice(0, 400) || 'Here is the step by step analysis.'];
+
   const normalizedSpeaker = SPEAKER_ALIASES[speaker.toLowerCase()] || speaker.toLowerCase();
+
+  // Model compatibility: standard speakers require bulbul:v3
+  const effectiveModel = (model === 'bulbul:v4-flash' && !normalizedSpeaker.includes('_conversational'))
+    ? 'bulbul:v3'
+    : (model || 'bulbul:v3');
 
   try {
     const res = await fetch(SARVAM_TTS_URL, {
@@ -347,7 +361,7 @@ export async function synthesizeSpeechSarvam(
         inputs: chunks,
         target_language_code: targetLanguageCode,
         speaker: normalizedSpeaker,
-        model: model,
+        model: effectiveModel,
       }),
     });
 
@@ -366,13 +380,12 @@ export async function synthesizeSpeechSarvam(
       console.warn('Sarvam API response error:', err);
     }
   } catch (err) {
-    console.warn('Sarvam API fetch failed, falling back to harmonic synthesizer:', err);
+    console.warn('Sarvam API fetch failed:', err);
   }
 
-  // Graceful harmonic fallback if API returns error or is unreachable
   return {
-    audioBase64: generateFallbackAudioBase64(),
-    statusMsg: '⚠️ Sarvam API error or rate limit. Rendered harmonic wave fallback.',
+    audioBase64: '',
+    statusMsg: '⚠️ Voice narration unavailable from Sarvam AI TTS API.',
     isReal: false,
   };
 }

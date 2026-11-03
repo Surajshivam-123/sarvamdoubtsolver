@@ -74,36 +74,48 @@ export async function solveDynamicProblemWithSarvamLlm(
   if (!apiKey || !problem.trim()) return null;
 
   try {
-    const prompt = `You are a highly advanced Multimodal Physics Engine and Reasoning Agent.
-Problem:
+    const prompt = `You are an expert Multi-Disciplinary Academic Reasoning and Socratic Pedagogy Engine.
+You adapt dynamically and precisely to ANY academic domain or discipline—including Computer Science & Algorithms, Mathematics, Economics & Finance, Law & Governance, History, Literature, Philosophy, Biology, Chemistry, Medicine, Physics, or General Inquiry.
+
+Problem / Question:
 """
 ${problem.trim()}
 """
 
 Student's Attempt / Thinking:
 """
-${steps.trim() || 'Student is seeking a complete step-by-step first-principles resolution.'}
+${steps.trim() ? steps.trim() : 'No initial student attempt provided. Student requested a direct, step-by-step masterclass resolution from first principles.'}
 """
 
 Target Spoken Narration Language: ${outputLangName}
 
 Execute Phase 2: Deep Processing.
+First, detect the exact subject domain of the problem.
+Tailor your vocabulary, principles, formulas, and derivations strictly to this subject domain.
+CRITICAL: Do NOT force physics terminology (such as SI units, Newton's laws, vectors, or conserved flux) onto non-physics disciplines! For example:
+- In Computer Science: use data structures, algorithms, invariants, and time/space complexity.
+- In Economics: use market supply/demand, surplus, elasticity, and price mechanisms.
+- In Law: use constitutional articles, legal precedents, rights, and statutory tests.
+- In History/Literature: use historical causality, thematic analysis, textual evidence, and critical evaluation.
+- In Mathematics: use rigorous algebraic/calculus derivations and theorems.
+- In Chemistry/Biology/Medicine: use biological pathways, molecular reactions, genetics, or kinetics.
+
 Output your response across two distinct rendering zones:
 
 Zone A: The Board Section (Step-by-Step Resolution)
-Deconstruct the problem using clear, rigorous physical logic structured for academic/board examinations:
-1. Identified Given Data & Constants: List every parameter with assigned variables and SI units.
-2. Fundamental Core Principles: Explicitly state the primary physical laws needed (e.g., Newton's Second Law, Conservation of Energy, Ohm's Law, etc.).
-3. Mathematical Derivation & Computation: Formulate equations using clear LaTeX syntax. Detail algebraic steps line by line—never skip intermediate calculations! Compute exact arithmetic accurately.
-4. Final Dimensional State: Conclude with the final numeric value, matching vector directions, proper units, and boxed out answer matching the correct MCQ option:
-   \\boxed{\\text{Answer: } [value] \\implies \\text{Option (X)}}
+Deconstruct the problem using clear, rigorous first-principles logic structured for academic/board examinations:
+1. Identified Given Data & Context: List all given premises, parameters, constraints, or context clearly.
+2. Fundamental Core Principles: Explicitly state the primary domain laws, theorems, frameworks, or axioms needed for this topic.
+3. Derivation, Analysis & Computation: Formulate reasoning step by step. If mathematical, detail algebraic steps line by line using LaTeX. If conceptual, detail the analytical argument line by line.
+4. Final State & Validated Resolution: Conclude with the final result, validated conclusion, and boxed out answer matching the correct option:
+   \\boxed{\\text{Answer: } [value/conclusion] \\implies \\text{Option (X)}}
 
 Zone B: Mind Map Execution (Conceptual Visualization)
-Generate a tree-structured conceptual map showing the structural dependencies of the problem following this strict hierarchy:
-* Root node: Core Topic (e.g., Mechanics: Work-Energy Theorem)
-  * Branch 1: Givens/Visual Inputs (e.g., Variable Mass, Initial Velocity, Incline Angle)
-  * Branch 2: Interim Formulas & Connection Blocks (e.g., Friction calculation → Work done by non-conservative forces)
-  * Branch 3: Final Evaluation Target (e.g., Solving for Final Acceleration a = ... → Option (X))
+Generate a tree-structured conceptual map showing the structural dependencies of the problem:
+* Root node: Core Topic & Subject Domain (e.g., "Algorithms: Stack LIFO Invariant" or "Economics: Rent Control Welfare" or "Calculus: Chain Rule")
+  * Branch 1: Givens / Baseline Premise (The initial state, parameters, constraints, or input facts)
+  * Branch 2: Interim Mechanism / Connecting Bridge (The governing theorem, transformation, formula, or causal link)
+  * Branch 3: Final Evaluation Target (Solving for final answer or conclusion)
 
 Output strictly valid JSON with keys:
 {
@@ -117,7 +129,7 @@ Output strictly valid JSON with keys:
   "zone_a_board_steps": [
     {
       "stepIndex": 1,
-      "title": "Zone A.1: Identified Given Data & Constants",
+      "title": "Zone A.1: Identified Given Data & Context",
       "latexContent": "...",
       "annotation": "...",
       "speechScript": "...",
@@ -133,7 +145,7 @@ Output strictly valid JSON with keys:
     },
     {
       "stepIndex": 3,
-      "title": "Zone A.3: Mathematical Derivation & Computation",
+      "title": "Zone A.3: Derivation, Analysis & Computation",
       "latexContent": "...",
       "annotation": "...",
       "speechScript": "...",
@@ -141,9 +153,9 @@ Output strictly valid JSON with keys:
     },
     {
       "stepIndex": 4,
-      "title": "Zone A.4: Final Dimensional State & Validated Option",
+      "title": "Zone A.4: Final State & Validated Option",
       "latexContent": "\\boxed{\\text{Answer: } ... \\implies \\text{Option (X)}}",
-      "annotation": "Exact physical result conforming to problem key",
+      "annotation": "Validated result conforming to problem key",
       "speechScript": "...",
       "chalkColor": "emerald"
     }
@@ -170,7 +182,7 @@ Output strictly valid JSON with keys:
         messages: [
           {
             role: 'system',
-            content: 'You are an advanced Multimodal Physics Engine and Reasoning Agent. Solve the exact problem accurately line by line, box the answer, and return ONLY valid JSON.',
+            content: 'You are an expert Multi-Disciplinary Academic Reasoning and Socratic Pedagogy Engine. Solve the exact problem accurately line by line adapting to its subject domain, box the answer, and return ONLY valid JSON.',
           },
           { role: 'user', content: prompt },
         ],
@@ -320,7 +332,7 @@ Output strictly valid JSON with keys:
         { id: 'N1_PREMISE', type: 'SOUND_PREMISE', label: zoneBMindMap ? 'Branch 1: Givens' : (boardSteps[0]?.title || 'Step 1: System Givens'), mathLatex: boardSteps[0]?.latexContent || '', description: zoneBMindMap?.branch_1_givens || 'Initial parameters and boundary conditions.', badge: 'SOUND PREMISE', audioScriptIndic: 'System initial conditions established.', position: nodePositions['N1_PREMISE'] },
         { id: 'N2_PIVOT', type: 'CRITICAL_PIVOT', label: zoneBMindMap ? `Root: ${zoneBMindMap.root_topic.slice(0, 24)}` : (boardSteps[1]?.title || 'Step 2: Governing Decision'), mathLatex: '\\text{Canonical Principle} \\;\\leftrightarrow\\; \\text{Intuition}', description: 'Branch point where canonical principle diverges from misconception.', badge: 'CRITICAL PIVOT', audioScriptIndic: 'Critical decision point in derivation.', position: nodePositions['N2_PIVOT'] },
         { id: 'N3_DERAILED', type: 'DERAILED_BRANCH', label: `Derailed: ${rMis.slice(0, 26)}`, mathLatex: '\\Delta \\mathcal{E}_{\\text{flaw}} \\neq 0', description: dReason || rMis, badge: 'DERAILED BRANCH', audioScriptIndic: 'Cognitive misconception occurred.', position: nodePositions['N3_DERAILED'] },
-        { id: 'N4_CONTRADICTION', type: 'DERAILED_BRANCH', label: 'Option Inconsistency', mathLatex: '\\text{Result} \\neq \\text{Valid Options}', description: 'Produces conflicting result contradicting system boundaries.', badge: 'CONTRADICTION', audioScriptIndic: 'Contradiction with valid physics options.', position: nodePositions['N4_CONTRADICTION'] },
+        { id: 'N4_CONTRADICTION', type: 'DERAILED_BRANCH', label: 'Option Inconsistency', mathLatex: '\\text{Result} \\neq \\text{Valid Options}', description: 'Produces conflicting result contradicting system boundaries.', badge: 'CONTRADICTION', audioScriptIndic: 'Contradiction with problem boundary conditions.', position: nodePositions['N4_CONTRADICTION'] },
         { id: 'N5_CANONICAL', type: 'CANONICAL_PATH', label: zoneBMindMap ? 'Branch 2: Interim Formulas' : `Canonical: ${cConcept.slice(0, 26)}`, mathLatex: boardSteps[3]?.latexContent || boardSteps[2]?.latexContent || '\\text{First Principles Invariant}', description: cConcept, badge: 'CANONICAL PATH', audioScriptIndic: 'Governing first principles invariant restored.', position: nodePositions['N5_CANONICAL'] },
         { id: 'N6_SOCRATIC', type: 'SOCRATIC_CHECKPOINT', label: zoneBMindMap ? 'Branch 3: Target State' : (boardSteps[4]?.title || 'Step 5: Verified Solution'), mathLatex: targetState, description: 'Verified target answer matching correct option.', badge: 'SOCRATIC CHECKPOINT', audioScriptIndic: 'Correct answer and self-correction checkpoint.', position: nodePositions['N6_SOCRATIC'] },
       ];
@@ -337,12 +349,12 @@ Output strictly valid JSON with keys:
     if (boardSteps.length >= 2) {
       return {
         domainId: parsed.domain_id || 'dynamic_solved',
-        domainName: parsed.domain_name || 'Academic Reasoning & STEM Derivation',
+        domainName: parsed.domain_name || 'Multi-Disciplinary Academic Reasoning',
         bloomLevel: 'Analysis & Evaluation',
         canonicalConcept: parsed.canonical_concept || 'Governing First-Principles Invariant',
-        rootMisconception: parsed.root_misconception || 'Unverified Intuition / Coordinate Flaw',
+        rootMisconception: parsed.root_misconception || 'Unverified Assumption / Flawed Rule',
         derailmentStep: typeof parsed.derailment_step === 'number' ? parsed.derailment_step : 2,
-        derailmentReason: parsed.derailment_reason || 'Applied unverified assumption without enforcing boundary conservation.',
+        derailmentReason: parsed.derailment_reason || 'Applied unverified assumption without enforcing governing boundary invariants.',
         socraticPrompt: parsed.socratic_prompt || 'Reflect on the governing constraint: how does the system invariant resolve this divergence?',
         hinglishPrompt: parsed.hinglish_prompt || 'Step 2 par gaur karein: governing invariant ko apply karne se kya difference aata hai?',
         narrationScript: parsed.narration_script || '',
@@ -367,7 +379,7 @@ export function detectUniversalDomain(problem: string, steps: string = '', break
 
   // 1A. ELECTRIC CIRCUITS & RESISTORS
   if (
-    /\b(circuit|resistor|resistors|ohm|ohms|Ω|voltage|battery|series|parallel|v\s*=\s*ir|current drawn)\b/i.test(text)
+    /\b(resistor|resistors|ohm|ohms|Ω|voltage\s*drop|battery\s*(?:emf|terminal)|kirchhoff|v\s*=\s*ir|current drawn|electric circuit|electric circuits|(?:series|parallel)\s+(?:circuit|resistor|resistors|branch|combination|connection))\b/i.test(text)
   ) {
     const numMatches = [...text.matchAll(/\b(\d+(?:\.\d+)?)\s*(?:ohm|ohms|Ω|v|volts?|a|amp|amperes?)\b/gi)];
     const r1 = numMatches[0] ? parseFloat(numMatches[0][1]) : 6;
@@ -543,8 +555,8 @@ export function detectUniversalDomain(problem: string, steps: string = '', break
 
   // 1C. 1D KINEMATICS & VERTICAL FREE FALL
   if (
-    /\b(dropped|free fall|falling|tower|height|maximum height|initial velocity|final velocity|speed of|accelerat|m\/s|m\/s\^?2|ms\^-2|g\s*=\s*10|g\s*=\s*9\.8)\b/i.test(text) &&
-    !/\b(incline|wedge|circuit|derivative|integral)\b/i.test(text)
+    /\b(free fall|dropped from rest|dropped vertically|initial velocity\s*(?:u\s*=|\b\d)|final velocity\s*(?:v\s*=|\b\d)|kinematics equation|gravitational acceleration|g\s*=\s*10|g\s*=\s*9\.8|ball dropped from|stone dropped from)\b/i.test(text) &&
+    !/\b(incline|wedge|circuit|derivative|integral|stock|market|price|court|case)\b/i.test(text)
   ) {
     const hMatch = text.match(/\b(?:height|h|tower|cliff|distance|s)\s*=?\s*(\d+(?:\.\d+)?)\s*(?:m|meters?)?\b/i);
     const uMatch = text.match(/\b(?:velocity|speed|u)\s*=?\s*(\d+(?:\.\d+)?)\s*(?:m\/s)?\b/i);
@@ -632,7 +644,7 @@ export function detectUniversalDomain(problem: string, steps: string = '', break
 
   // 1D. INCLINED PLANE & WEDGE FORCES (Only if problem explicitly mentions incline or wedge)
   if (
-    /\b(incline|inclined|wedge|slides down|sliding down)\b/i.test(text)
+    /\b(inclined plane|friction coefficient|normal force|slides down an incline|sliding down a wedge|coefficient of friction|block on an incline|mass on an incline)\b/i.test(text)
   ) {
     const massMatch = text.match(/(?:mass|m)\s*=?\s*(\d+(?:\.\d+)?)\s*(?:kg|g)?/i);
     const angleMatch = text.match(/(?:θ|theta|angle|inclination)\s*=?\s*(\d+(?:\.\d+)?)(?:°|deg)?/i);
@@ -1533,21 +1545,21 @@ export function detectUniversalDomain(problem: string, steps: string = '', break
 
   return {
     domainId: 'universal_custom',
-    domainName: 'Universal Analytical & First-Principles Reasoning',
+    domainName: 'Multi-Disciplinary First Principles Reasoning',
     bloomLevel: 'Epistemic Evaluation',
-    canonicalConcept: `First-Principles Invariant & System Boundary Constraint (${cleanSummary.slice(0, 45)})`,
+    canonicalConcept: `First-Principles Invariant & Boundary Constraint (${cleanSummary.slice(0, 45)})`,
     rootMisconception: 'Extrapolating a Localized Heuristic Beyond System Boundary Conditions',
     derailmentStep: 2,
-    derailmentReason: 'Applied an unverified assumption without cross-checking governing conservation laws and boundary parameters.',
-    socraticPrompt: `Reflect on Step 2 in your attempted derivation: What foundational boundary condition or invariant was implicitly assumed to hold universally?`,
-    hinglishPrompt: `Step 2 par gaur karein: aapne jo step assume kiya, kya woh boundary conditions aur first principles ke mutabiq valid hai?`,
+    derailmentReason: 'Applied an unverified assumption without cross-checking governing boundary parameters and foundational rules.',
+    socraticPrompt: `Reflect on Step 2 in your attempted reasoning: What foundational boundary condition or core principle was implicitly assumed to hold universally?`,
+    hinglishPrompt: `Step 2 par gaur karein: aapne jo step assume kiya, kya woh foundational principles aur subject rules ke mutabiq valid hai?`,
     boardSteps: [
       {
         stepIndex: 1,
-        title: 'Step 1: First-Principles Problem Formulation',
-        latexContent: '\\text{Given System State: } \\mathcal{S}_0 = \\{ P_1, P_2, \\dots, P_k \\}, \\quad \\text{Objective: Find } \\mathcal{S}^*',
-        annotation: 'Establish baseline parameters, inputs, and initial boundary constraints',
-        speechScript: 'Pehle problem ke initial parameters aur foundational assumptions ko state space mein formalize karte hain.',
+        title: 'Step 1: Problem Formulation & Core Givens',
+        latexContent: '\\text{Given Context: } \\mathcal{S}_0 = \\{ P_1, P_2, \\dots, P_k \\}, \\quad \\text{Objective: Resolve } \\mathcal{S}^*',
+        annotation: 'Establish baseline premises, inputs, and initial boundary constraints',
+        speechScript: 'Pehle problem ke initial premises aur foundational assumptions ko systematically identify karte hain.',
         chalkColor: 'emerald',
         durationEstimateMs: 3800,
       },
@@ -1555,7 +1567,7 @@ export function detectUniversalDomain(problem: string, steps: string = '', break
         stepIndex: 2,
         title: 'Step 2: Student Attempt (Boundary Condition Decoupling)',
         latexContent: '\\text{Assumption: } \\mathcal{A}(x) = \\text{Universal} \\implies \\text{Omitted Boundary Constraint } \\mathcal{C}',
-        annotation: '⚠️ Critical Pivot: Conflated localized behavior with universal invariant',
+        annotation: '⚠️ Critical Pivot: Conflated localized intuition with universal rule',
         speechScript: 'Step 2 par logic derail hua: aapne ek specific heuristic ko bina boundary conditions verify kiye universal maan liya.',
         chalkColor: 'amber',
         durationEstimateMs: 4400,
@@ -1563,8 +1575,8 @@ export function detectUniversalDomain(problem: string, steps: string = '', break
       {
         stepIndex: 3,
         title: 'Step 3: Boundary Invalidation & Counterexample',
-        latexContent: '\\exists x \\in \\text{Domain}: \\quad \\mathcal{C}(x) = \\text{False} \\implies \\text{Solution Decoupled}',
-        annotation: 'Demonstrates failure when system edges or conservation constraints are tested',
+        latexContent: '\\exists x \\in \\text{Domain}: \\quad \\mathcal{C}(x) = \\text{False} \\implies \\text{Reasoning Decoupled}',
+        annotation: 'Demonstrates failure when edge cases or foundational principles are tested',
         speechScript: 'Counterexample dekhiye: edge conditions par yeh assumption fail ho jati hai aur contradiction create karti hai.',
         chalkColor: 'rose' as any,
         durationEstimateMs: 4200,
@@ -1572,18 +1584,18 @@ export function detectUniversalDomain(problem: string, steps: string = '', break
       {
         stepIndex: 4,
         title: 'Step 4: Canonical Scaffolding: Enforce Governing Invariant',
-        latexContent: '\\text{Invariant: } \\mathcal{I}(\\mathcal{S}) = \\text{Constant} \\iff \\Sigma \\text{Conserved Flux} = 0',
-        annotation: 'Restore governing domain law (conservation, equilibrium, or grammatical parity)',
-        speechScript: 'Canonical approach: governing first-principles invariant ko explicitly enforce karein.',
+        latexContent: '\\text{Governing Principle: } \\mathcal{I}(\\mathcal{S}) = \\text{Satisfied} \\implies \\text{First Principles Verified}',
+        annotation: 'Restore governing domain law, principle, or logical structure',
+        speechScript: 'Canonical approach: is topic ke governing foundational principles ko systematically enforce karein.',
         chalkColor: 'cyan',
         durationEstimateMs: 4500,
       },
       {
         stepIndex: 5,
-        title: 'Step 5: Valid System Resolution & Synthesized Conclusion',
-        latexContent: '\\mathcal{S}^* = \\text{Argmax}_{\\mathcal{S}} \\{ \\mathcal{F}(\\mathcal{S}) \\; | \\; \\mathcal{I}(\\mathcal{S}) = 0 \\}',
-        annotation: 'Empirically verified solution conforming to all domain boundaries',
-        speechScript: 'Isse derivation fully verified aur robust ho jati hai jo har condition mein hold karegi.',
+        title: 'Step 5: Valid Resolution & Synthesized Conclusion',
+        latexContent: '\\mathcal{S}^* = \\text{Argmax}_{\\mathcal{S}} \\{ \\mathcal{F}(\\mathcal{S}) \\; | \\; \\mathcal{I}(\\mathcal{S}) = \\text{True} \\}',
+        annotation: 'Logically verified solution conforming to all domain constraints',
+        speechScript: 'Isse resolution fully verified aur robust ho jati hai jo har condition mein hold karegi.',
         chalkColor: 'emerald',
         durationEstimateMs: 3600,
       },
@@ -1593,7 +1605,7 @@ export function detectUniversalDomain(problem: string, steps: string = '', break
       { id: 'N2_PIVOT', type: 'CRITICAL_PIVOT', label: 'Step 2: Transition Assumption', mathLatex: '\\mathcal{A} \\text{ vs } \\mathcal{I}_{\\text{domain}}', description: 'Branch point: Localized intuition vs governing invariant.', badge: 'CRITICAL PIVOT', audioScriptIndic: 'Pivot: localized heuristic vs universal law.', position: { x: 310, y: 180 } },
       { id: 'N3_DERAILED', type: 'DERAILED_BRANCH', label: 'Step 3: Unconstrained Inference', mathLatex: '\\mathcal{C} = \\text{Omitted}', description: 'Decoupled from boundary constraints.', badge: 'DERAILED BRANCH', audioScriptIndic: 'Boundary condition decouple ho gayi.', position: { x: 570, y: 70 } },
       { id: 'N4_CONTRADICTION', type: 'DERAILED_BRANCH', label: 'Step 4: System Contradiction', mathLatex: '\\text{Contradicts Domain Reality}', description: 'Yields unverified or conflicting conclusion.', badge: 'CONTRADICTION', audioScriptIndic: 'Conflicting conclusion reach hui.', position: { x: 840, y: 70 } },
-      { id: 'N5_CANONICAL', type: 'CANONICAL_PATH', label: 'Canonical Step 3: Governing Invariant', mathLatex: '\\mathcal{I}(\\mathcal{S}) = \\text{Enforced}', description: 'Enforces system conservation principles.', badge: 'CANONICAL PATH', audioScriptIndic: 'First-principles invariant restore hua.', position: { x: 570, y: 310 } },
+      { id: 'N5_CANONICAL', type: 'CANONICAL_PATH', label: 'Canonical Step 3: Governing Invariant', mathLatex: '\\mathcal{I}(\\mathcal{S}) = \\text{Enforced}', description: 'Enforces domain governing principles.', badge: 'CANONICAL PATH', audioScriptIndic: 'First-principles invariant restore hua.', position: { x: 570, y: 310 } },
       { id: 'N6_SOCRATIC', type: 'SOCRATIC_CHECKPOINT', label: 'Socratic Checkpoint: Boundary Verification', mathLatex: '\\lim_{x \\to \\text{boundary}} \\mathcal{F}(x)', description: 'What happens at the extreme boundary values?', badge: 'SOCRATIC CHECKPOINT', audioScriptIndic: 'Extreme boundary conditions test kijiye.', position: { x: 840, y: 310 } },
     ],
     graphEdges: [
@@ -1657,6 +1669,7 @@ export function diagnoseDoubtSemantic(
     };
   });
 
+  const hasStudentAttempt = Boolean(studentSteps && studentSteps.trim().length > 0);
   const rawSteps = studentSteps.split('\n').filter((s) => s.trim().length > 0);
   const n0 = domain.graphNodes?.[0];
   const n1 = domain.graphNodes?.[1];
@@ -1664,11 +1677,15 @@ export function diagnoseDoubtSemantic(
   const n4 = domain.graphNodes?.[4];
   const n5 = domain.graphNodes?.[5];
 
-  const studentNodes = [
-    { id: 'S1', label: rawSteps[0] || n0?.label || 'Initial Premise Formulation', is_error: false, detail: n0?.description || 'Correct baseline setup and premise identification' },
-    { id: 'S2', label: rawSteps[1] || n1?.label || 'Applied Rule Without Invariant', is_error: true, detail: `Derailment: ${domain.derailmentReason}` },
-    { id: 'S3', label: rawSteps[2] || n2?.label || 'Unverified Conclusion Reached', is_error: true, detail: 'Conclusion contradicts system boundary constraints' },
-  ];
+  const studentNodes = hasStudentAttempt
+    ? [
+        { id: 'S1', label: rawSteps[0] || n0?.label || 'Initial Premise Formulation', is_error: false, detail: n0?.description || 'Correct baseline setup and premise identification' },
+        { id: 'S2', label: rawSteps[1] || n1?.label || 'Applied Rule Without Invariant', is_error: true, detail: `Derailment: ${domain.derailmentReason}` },
+        ...(rawSteps.length > 2 ? [{ id: 'S3', label: rawSteps[2] || n2?.label || 'Unverified Conclusion Reached', is_error: true, detail: 'Conclusion contradicts system boundary constraints' }] : []),
+      ]
+    : [
+        { id: 'S1', label: 'Problem Inquiry', is_error: false, detail: 'Direct step-by-step masterclass resolution requested from first principles.' },
+      ];
 
   const remediationNodes = [
     { id: 'R1', label: n0?.label || 'Establish System Boundaries', is_pivot: false, detail: 'Define foundational conservation constraints' },
@@ -1679,14 +1696,14 @@ export function diagnoseDoubtSemantic(
   const storyboard = {
     doubt_domain: domain.domainName,
     identified_topic: domain.canonicalConcept,
-    misconception_name: domain.rootMisconception,
-    derailment_step: domain.derailmentStep,
-    derailment_reason: domain.derailmentReason,
+    misconception_name: hasStudentAttempt ? domain.rootMisconception : 'Direct Resolution',
+    derailment_step: hasStudentAttempt ? domain.derailmentStep : 1,
+    derailment_reason: hasStudentAttempt ? domain.derailmentReason : 'Direct first-principles resolution.',
     socratic_challenge: domain.socraticPrompt,
     full_spoken_transcript: narrationScript,
     synchronized_timeline: dynamicTimeline.length > 0 ? dynamicTimeline : [
-      { step_id: 1, speech_segment: 'Let us examine your initial formulation: your baseline setup was completely sound.', start_time: 0.0, end_time: 7.0, duration: 7.0, board_action: 'WRITE', color: '#10B981', content: 'Sound Premise' },
-      { step_id: 2, speech_segment: `Notice carefully: at Step 2 your derivation derailed: ${domain.derailmentReason}.`, start_time: 7.0, end_time: 16.0, duration: 9.0, board_action: 'CROSS_OUT', color: '#EF4444', content: 'Critical Divergence' },
+      { step_id: 1, speech_segment: 'Let us examine the problem setup: our initial parameters and premises are established.', start_time: 0.0, end_time: 7.0, duration: 7.0, board_action: 'WRITE', color: '#10B981', content: 'Premise Formulation' },
+      { step_id: 2, speech_segment: hasStudentAttempt ? `Notice carefully: at Step 2 your derivation derailed: ${domain.derailmentReason}.` : `Examine the foundational core principles governing this domain.`, start_time: 7.0, end_time: 16.0, duration: 9.0, board_action: hasStudentAttempt ? 'CROSS_OUT' : 'WRITE', color: hasStudentAttempt ? '#EF4444' : '#10B981', content: hasStudentAttempt ? 'Critical Divergence' : 'Core Principles' },
       { step_id: 3, speech_segment: `Branch down to the governing invariant at the Pivot Node: ${domain.canonicalConcept}.`, start_time: 16.0, end_time: 25.0, duration: 9.0, board_action: 'DRAW_ARROW', color: '#06B6D4', content: 'Canonical Invariant' },
       { step_id: 4, speech_segment: `Socratic self-correction challenge: ${domain.socraticPrompt}`, start_time: 25.0, end_time: 35.0, duration: 10.0, board_action: 'WRITE', color: '#8B5CF6', content: 'Socratic Checkpoint' },
     ],
