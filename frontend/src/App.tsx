@@ -39,7 +39,7 @@ export const App: React.FC = () => {
 
   // Presets & Form State
   const [presets, setPresets] = useState<PresetDoubt[]>([]);
-  const [activePresetKey, setActivePresetKey] = useState('coding_balanced_parentheses');
+  const [activePresetKey, setActivePresetKey] = useState('');
   const [doubt, setDoubt] = useState('');
   const [steps, setSteps] = useState('');
   const [breakdown, setBreakdown] = useState('');
@@ -77,24 +77,6 @@ export const App: React.FC = () => {
         setAvailableProfiles(allProfs);
         if (cfg.default_sarvam_api_key) {
           setSarvamKey(cfg.default_sarvam_api_key);
-        }
-
-        // Set default preset
-        const defaultPreset = presetList.find((p) => p.key === 'coding_balanced_parentheses') || presetList[0];
-        if (defaultPreset) {
-          loadPreset(defaultPreset, false);
-          // Auto diagnose default preset so canvas is instantly alive
-          runDiagnosis({
-            doubt: defaultPreset.problem_statement,
-            steps: defaultPreset.student_steps,
-            breakdown: defaultPreset.student_breakdown,
-            studentId,
-            inputLang: 'English',
-            outputLang: 'Hinglish (हिंग्लिश)',
-            speaker: 'ritu',
-            ttsModel: 'bulbul:v3',
-            sarvamKey: cfg.default_sarvam_api_key,
-          });
         }
       } catch (err) {
         console.error('Initialization error:', err);
@@ -142,16 +124,23 @@ export const App: React.FC = () => {
 
   const handleDoubtChange = (val: string) => {
     // Whenever user types, pastes, or changes problem, erase old board output so it never sticks!
-    if (activePresetKey !== 'custom') {
+    if (activePresetKey !== 'custom' && activePresetKey !== '') {
       setActivePresetKey('custom');
-      setSteps(''); // Clear previous problem's thinking steps!
+      setSteps(''); // Clear previous preset's thinking steps!
       setBreakdown('');
+    } else if (activePresetKey === '') {
+      setActivePresetKey('custom');
     }
     setDiagnosisData(null); // Instantly erase previous model's output!
     setDoubt(val);
   };
 
   const handleStepsChange = (val: string) => {
+    if (activePresetKey !== 'custom' && activePresetKey !== '') {
+      setActivePresetKey('custom');
+    } else if (activePresetKey === '') {
+      setActivePresetKey('custom');
+    }
     setSteps(val);
     setDiagnosisData(null); // Erase old board solve when user updates steps
   };

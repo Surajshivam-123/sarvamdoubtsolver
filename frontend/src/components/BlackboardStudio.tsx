@@ -359,15 +359,15 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
 
   if (!graphPayload && !boardSolve) {
     return (
-      <div className="w-full h-[600px] blackboard-grid rounded-2xl border border-zinc-800 shadow-2xl flex flex-col items-center justify-center text-zinc-400 p-8 text-center relative overflow-hidden">
+      <div className="w-full h-[520px] blackboard-grid rounded-2xl border border-zinc-800 shadow-2xl flex flex-col items-center justify-center text-zinc-400 p-8 text-center relative overflow-hidden">
         <div className="w-14 h-14 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex items-center justify-center text-emerald-400 mb-3 shadow-xl">
-          <RotateCcw className="w-6 h-6 text-zinc-400" />
+          <Sparkles className="w-6 h-6 text-emerald-400" />
         </div>
         <h3 className="text-sm font-semibold text-zinc-200 mb-1">
-          Chalkboard Clean & Ready
+          Chalkboard Ready
         </h3>
         <p className="text-xs text-zinc-400 max-w-sm leading-relaxed">
-          Previous problem erased. Provide your problem statement and click &quot;Analyze Thinking&quot; to begin fresh step-by-step board derivation.
+          Select any sample doubt above or enter your own problem, then click &quot;Analyze Thinking&quot; to begin the interactive step-by-step derivation.
         </p>
       </div>
     );
