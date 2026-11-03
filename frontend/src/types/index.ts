@@ -79,6 +79,12 @@ export interface DivergenceGraphResponse {
   summarySpeechScript: string;
   nodes: GraphNode[];
   edges: GraphEdge[];
+  zoneBMindMap?: {
+    root_topic: string;
+    branch_1_givens: string;
+    branch_2_interim: string;
+    branch_3_target: string;
+  };
 }
 
 // Legacy node structure for backward compatibility

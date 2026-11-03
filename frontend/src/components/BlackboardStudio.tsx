@@ -20,6 +20,7 @@ import {
   GitBranch,
   Volume2,
   Crosshair,
+  Network,
 } from 'lucide-react';
 import {
   GraphPayload,
@@ -92,6 +93,7 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [selectedNode, setSelectedNode] = useState<GraphNode | NodeCard | null>(null);
+  const [showZoneBTree, setShowZoneBTree] = useState(false);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -451,6 +453,22 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
 
           {activeTab === 'graph' && (
             <div className="flex items-center gap-1.5">
+              {divergenceGraph?.zoneBMindMap && (
+                <button
+                  type="button"
+                  onClick={() => setShowZoneBTree((prev) => !prev)}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${
+                    showZoneBTree
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-sm'
+                      : 'bg-zinc-950/80 hover:bg-zinc-800 text-zinc-300 border border-zinc-800'
+                  }`}
+                  title="Toggle Zone B: Mind Map Conceptual Hierarchy"
+                >
+                  <Network className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden sm:inline">Zone B Tree</span>
+                </button>
+              )}
+
               <button
                 onClick={alignGraph}
                 className="flex items-center gap-1 px-2 py-1 rounded-md bg-zinc-950/80 hover:bg-zinc-800 text-emerald-400 border border-emerald-500/30 text-[11px] font-medium transition-colors cursor-pointer"
@@ -513,7 +531,7 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
             </div>
 
             {/* Blackboard KaTeX Math Rendering with Chalk Typography (strictly bounded) */}
-            <div className="my-2 py-2.5 px-3 rounded-xl bg-zinc-950/70 border border-zinc-800/60 text-zinc-100 shadow-inner flex items-center justify-center min-h-[90px] max-h-[170px] max-w-full overflow-x-auto overflow-y-hidden flex-1">
+            <div className="my-2 py-2.5 px-3 rounded-xl bg-zinc-950/70 border border-zinc-800/60 text-zinc-100 shadow-inner flex items-center justify-center min-h-[90px] max-h-[220px] max-w-full overflow-x-auto overflow-y-auto flex-1">
               <div className="text-base sm:text-xl text-emerald-300 font-serif leading-normal animate-in fade-in duration-300 max-w-full overflow-x-auto text-center px-1">
                 <MathRenderer math={activeBoardStep.latexContent} displayMode={true} />
               </div>
@@ -843,6 +861,69 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
               <p className="text-[11px] text-emerald-200">{(selectedNode as any).misconceptionDetails.correctionHint}</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Zone B: Mind Map Conceptual Hierarchy Overlay (Graph Tab) */}
+      {activeTab === 'graph' && divergenceGraph?.zoneBMindMap && showZoneBTree && (
+        <div className="absolute top-16 left-4 z-40 w-80 sm:w-96 bg-zinc-950/95 backdrop-blur-xl border border-amber-500/40 rounded-xl p-4 shadow-2xl text-zinc-200 transition-all duration-200 animate-in fade-in">
+          <div className="flex items-center justify-between pb-2 mb-3 border-b border-zinc-800">
+            <div className="flex items-center gap-1.5">
+              <Network className="w-4 h-4 text-amber-400" />
+              <span className="text-xs font-semibold text-amber-300 uppercase tracking-wider">
+                Zone B: Mind Map Hierarchy
+              </span>
+            </div>
+            <button
+              onClick={() => setShowZoneBTree(false)}
+              className="p-1 rounded-md text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors cursor-pointer"
+              title="Close Zone B Hierarchy"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="space-y-2.5 text-xs">
+            {/* Root Node */}
+            <div className="p-2.5 rounded-lg bg-amber-950/30 border border-amber-500/30">
+              <span className="text-[10px] font-mono text-amber-400 block font-semibold uppercase">
+                Root Node (Core Topic)
+              </span>
+              <p className="text-zinc-100 font-semibold text-xs mt-0.5">
+                {divergenceGraph.zoneBMindMap.root_topic}
+              </p>
+            </div>
+
+            {/* Branch 1 */}
+            <div className="p-2.5 rounded-lg bg-emerald-950/30 border border-emerald-500/30">
+              <span className="text-[10px] font-mono text-emerald-400 block font-semibold uppercase">
+                Branch 1: Givens / Visual Inputs
+              </span>
+              <p className="text-zinc-200 text-[11px] mt-0.5 leading-relaxed font-sans">
+                {divergenceGraph.zoneBMindMap.branch_1_givens}
+              </p>
+            </div>
+
+            {/* Branch 2 */}
+            <div className="p-2.5 rounded-lg bg-cyan-950/30 border border-cyan-500/30">
+              <span className="text-[10px] font-mono text-cyan-400 block font-semibold uppercase">
+                Branch 2: Interim Formulas & Connections
+              </span>
+              <p className="text-zinc-200 text-[11px] mt-0.5 leading-relaxed font-sans">
+                {divergenceGraph.zoneBMindMap.branch_2_interim}
+              </p>
+            </div>
+
+            {/* Branch 3 */}
+            <div className="p-2.5 rounded-lg bg-violet-950/30 border border-violet-500/30">
+              <span className="text-[10px] font-mono text-violet-400 block font-semibold uppercase">
+                Branch 3: Final Evaluation Target
+              </span>
+              <p className="text-zinc-100 text-[11px] mt-0.5 leading-relaxed font-sans font-medium">
+                {divergenceGraph.zoneBMindMap.branch_3_target}
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -46,6 +46,12 @@ export interface DomainProfile {
   socraticPrompt: string;
   hinglishPrompt: string;
   narrationScript?: string;
+  zoneBMindMap?: {
+    root_topic: string;
+    branch_1_givens: string;
+    branch_2_interim: string;
+    branch_3_target: string;
+  };
   boardSteps: BoardStep[];
   graphNodes: GraphNode[];
   graphEdges: GraphEdge[];
@@ -53,22 +59,22 @@ export interface DomainProfile {
 
 /**
  * Universal Sovereign LLM Problem Solver (Powered by Sarvam AI sarvam-105b-conversations)
- * Dynamically derives publication-grade 5-step chalkboard solutions, diagnoses misconceptions,
- * generates 6-node divergence mind maps, and creates spoken scripts for ANY problem.
+ * Executes Phase 2: Deep Processing.
+ * Renders Zone A (Board Section with line-by-line derivation and boxed final state)
+ * and Zone B (Mind Map Execution with strict Root -> Branch 1 -> Branch 2 -> Branch 3 tree).
  */
 export async function solveDynamicProblemWithSarvamLlm(
   problem: string,
   steps: string = '',
   outputLangName: string = 'Hinglish (हिंग्लिश)',
-  studentName: string = 'Learner'
+  studentName: string = 'Learner',
+  customApiKey?: string
 ): Promise<DomainProfile | null> {
-  const apiKey = getStoredApiKey();
+  const apiKey = (customApiKey && customApiKey.trim()) || getStoredApiKey();
   if (!apiKey || !problem.trim()) return null;
 
   try {
-    const prompt = `You are a master academic pedagogy engine, STEM professor, and tutor for Sansay Bhasha Doubt Solver.
-The student has provided an academic problem and optionally their initial thinking or attempt.
-
+    const prompt = `You are a highly advanced Multimodal Physics Engine and Reasoning Agent.
 Problem:
 """
 ${problem.trim()}
@@ -76,40 +82,44 @@ ${problem.trim()}
 
 Student's Attempt / Thinking:
 """
-${steps.trim() || 'Initial attempt to formulate equations and solve the problem.'}
+${steps.trim() || 'Student is seeking a complete step-by-step first-principles resolution.'}
 """
 
 Target Spoken Narration Language: ${outputLangName}
 
-Task:
-1. Accurately solve the student's EXACT problem step-by-step using first principles.
-2. Identify the canonical governing concept.
-3. Identify the student's root misconception or likely cognitive pitfall (e.g. formula confusion, sign error, boundary neglect, wrong coordinate frame).
-4. Create a 5-step digital chalkboard storyboard with LaTeX equations and step-by-step spoken narration in ${outputLangName}.
-5. Create a 6-node divergence mind-map graph:
-   - N1_PREMISE (Sound Premise: givens, diagram geometry, and baseline conditions)
-   - N2_PIVOT (Critical Pivot: the branch point where intuition diverges from first principles)
-   - N3_DERAILED (Derailed Branch: where flawed reasoning leads)
-   - N4_CONTRADICTION (Contradiction / Option Mismatch)
-   - N5_CANONICAL (Canonical Path: governing invariant and correct resolution)
-   - N6_SOCRATIC (Socratic Checkpoint: verified answer matching the correct option and reflection challenge)
-6. Write a detailed teacher narration script in ${outputLangName} explaining the problem, the derivation, where the misconception happened, and the socratic question.
+Execute Phase 2: Deep Processing.
+Output your response across two distinct rendering zones:
 
-Output ONLY valid JSON matching this exact structure:
+Zone A: The Board Section (Step-by-Step Resolution)
+Deconstruct the problem using clear, rigorous physical logic structured for academic/board examinations:
+1. Identified Given Data & Constants: List every parameter with assigned variables and SI units.
+2. Fundamental Core Principles: Explicitly state the primary physical laws needed (e.g., Newton's Second Law, Conservation of Energy, Ohm's Law, etc.).
+3. Mathematical Derivation & Computation: Formulate equations using clear LaTeX syntax. Detail algebraic steps line by line—never skip intermediate calculations! Compute exact arithmetic accurately.
+4. Final Dimensional State: Conclude with the final numeric value, matching vector directions, proper units, and boxed out answer matching the correct MCQ option:
+   \\boxed{\\text{Answer: } [value] \\implies \\text{Option (X)}}
+
+Zone B: Mind Map Execution (Conceptual Visualization)
+Generate a tree-structured conceptual map showing the structural dependencies of the problem following this strict hierarchy:
+* Root node: Core Topic (e.g., Mechanics: Work-Energy Theorem)
+  * Branch 1: Givens/Visual Inputs (e.g., Variable Mass, Initial Velocity, Incline Angle)
+  * Branch 2: Interim Formulas & Connection Blocks (e.g., Friction calculation → Work done by non-conservative forces)
+  * Branch 3: Final Evaluation Target (e.g., Solving for Final Acceleration a = ... → Option (X))
+
+Output strictly valid JSON with keys:
 {
-  "domain_id": "physics_dynamics",
-  "domain_name": "Classical Physics & Mechanics",
+  "domain_id": "string",
+  "domain_name": "string",
   "canonical_concept": "string",
   "root_misconception": "string",
   "derailment_step": 2,
   "derailment_reason": "string",
   "socratic_prompt": "string",
   "hinglish_prompt": "string",
-  "narration_script": "string (detailed spoken masterclass narration in ${outputLangName})",
-  "board_steps": [
+  "narration_script": "string (masterclass spoken explanation in ${outputLangName})",
+  "zone_a_board_steps": [
     {
       "stepIndex": 1,
-      "title": "Step 1: ...",
+      "title": "Zone A.1: Identified Given Data & Constants",
       "latexContent": "...",
       "annotation": "...",
       "speechScript": "...",
@@ -117,23 +127,23 @@ Output ONLY valid JSON matching this exact structure:
     },
     {
       "stepIndex": 2,
-      "title": "Step 2: ...",
+      "title": "Zone A.2: Fundamental Core Principles",
+      "latexContent": "...",
+      "annotation": "...",
+      "speechScript": "...",
+      "chalkColor": "cyan"
+    },
+    {
+      "stepIndex": 3,
+      "title": "Zone A.3: Mathematical Derivation & Intermediate Steps",
       "latexContent": "...",
       "annotation": "...",
       "speechScript": "...",
       "chalkColor": "amber"
     },
     {
-      "stepIndex": 3,
-      "title": "Step 3: ...",
-      "latexContent": "...",
-      "annotation": "...",
-      "speechScript": "...",
-      "chalkColor": "rose"
-    },
-    {
       "stepIndex": 4,
-      "title": "Step 4: ...",
+      "title": "Zone A.3: Quantitative Computation & Algebra",
       "latexContent": "...",
       "annotation": "...",
       "speechScript": "...",
@@ -141,18 +151,24 @@ Output ONLY valid JSON matching this exact structure:
     },
     {
       "stepIndex": 5,
-      "title": "Step 5: ...",
-      "latexContent": "...",
-      "annotation": "...",
+      "title": "Zone A.4: Final Dimensional State & Validated Option",
+      "latexContent": "\\boxed{\\text{Answer: } ... \\implies \\text{Option (X)}}",
+      "annotation": "Exact physical result conforming to problem key",
       "speechScript": "...",
       "chalkColor": "emerald"
     }
   ],
+  "zone_b_mind_map": {
+    "root_topic": "string",
+    "branch_1_givens": "string",
+    "branch_2_interim": "string",
+    "branch_3_target": "string"
+  },
   "graph_nodes": [
     {
       "id": "N1_PREMISE",
       "type": "SOUND_PREMISE",
-      "label": "...",
+      "label": "Branch 1: Givens & Inputs",
       "mathLatex": "...",
       "description": "...",
       "badge": "SOUND PREMISE",
@@ -161,7 +177,7 @@ Output ONLY valid JSON matching this exact structure:
     {
       "id": "N2_PIVOT",
       "type": "CRITICAL_PIVOT",
-      "label": "...",
+      "label": "Root: Governing Physical Law",
       "mathLatex": "...",
       "description": "...",
       "badge": "CRITICAL PIVOT",
@@ -170,7 +186,7 @@ Output ONLY valid JSON matching this exact structure:
     {
       "id": "N3_DERAILED",
       "type": "DERAILED_BRANCH",
-      "label": "...",
+      "label": "Derailed Intuition",
       "mathLatex": "...",
       "description": "...",
       "badge": "DERAILED BRANCH",
@@ -179,7 +195,7 @@ Output ONLY valid JSON matching this exact structure:
     {
       "id": "N4_CONTRADICTION",
       "type": "DERAILED_BRANCH",
-      "label": "...",
+      "label": "Option Inconsistency",
       "mathLatex": "...",
       "description": "...",
       "badge": "CONTRADICTION",
@@ -188,7 +204,7 @@ Output ONLY valid JSON matching this exact structure:
     {
       "id": "N5_CANONICAL",
       "type": "CANONICAL_PATH",
-      "label": "...",
+      "label": "Branch 2: Interim Formulas",
       "mathLatex": "...",
       "description": "...",
       "badge": "CANONICAL PATH",
@@ -197,7 +213,7 @@ Output ONLY valid JSON matching this exact structure:
     {
       "id": "N6_SOCRATIC",
       "type": "SOCRATIC_CHECKPOINT",
-      "label": "...",
+      "label": "Branch 3: Target State",
       "mathLatex": "...",
       "description": "...",
       "badge": "SOCRATIC CHECKPOINT",
@@ -207,7 +223,7 @@ Output ONLY valid JSON matching this exact structure:
 }`;
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 12000);
+    const timer = setTimeout(() => controller.abort(), 25000);
 
     const res = await fetch('https://api.sarvam.ai/v1/chat/completions', {
       method: 'POST',
@@ -220,11 +236,11 @@ Output ONLY valid JSON matching this exact structure:
         messages: [
           {
             role: 'system',
-            content: 'You are an Indic academic pedagogy engine. Solve the exact problem accurately and return ONLY valid JSON.',
+            content: 'You are an advanced Multimodal Physics Engine and Reasoning Agent. Solve the exact problem accurately line by line, box the answer, and return ONLY valid JSON.',
           },
           { role: 'user', content: prompt },
         ],
-        temperature: 0.15,
+        temperature: 0.1,
         max_tokens: 2200,
       }),
       signal: controller.signal,
@@ -254,9 +270,21 @@ Output ONLY valid JSON matching this exact structure:
     const jsonStr = content.slice(firstBrace, lastBrace + 1);
     const parsed = JSON.parse(jsonStr);
 
-    // Normalize board steps (handling string array or object array)
-    const rawBoardSteps = Array.isArray(parsed.board_steps) ? parsed.board_steps : [];
-    const validChalkColors = ['emerald', 'amber', 'rose', 'cyan', 'purple'];
+    // Normalize board steps (handling zone_a_board_steps or board_steps, strings or objects)
+    const rawBoardSteps = Array.isArray(parsed.zone_a_board_steps)
+      ? parsed.zone_a_board_steps
+      : (Array.isArray(parsed.board_steps) ? parsed.board_steps : []);
+
+    const mapChalkColor = (col: string, idx: number): any => {
+      const c = (col || '').toLowerCase();
+      if (c === 'blue' || c === 'cyan') return 'cyan';
+      if (c === 'red' || c === 'rose') return 'rose';
+      if (c === 'orange' || c === 'yellow' || c === 'amber') return 'amber';
+      if (c === 'purple' || c === 'violet') return 'purple';
+      if (c === 'green' || c === 'emerald' || c === 'white' || c === 'black') return 'emerald';
+      return idx === 1 ? 'cyan' : idx === 2 ? 'amber' : idx === 3 ? 'cyan' : 'emerald';
+    };
+
     const boardSteps: BoardStep[] = rawBoardSteps.map((s: any, idx: number) => {
       if (typeof s === 'string') {
         const parts = s.split(':');
@@ -268,7 +296,7 @@ Output ONLY valid JSON matching this exact structure:
           latexContent: math,
           annotation: 'First principles derivation',
           speechScript: s,
-          chalkColor: (idx === 1 ? 'amber' : idx === 2 ? 'rose' : idx === 3 ? 'cyan' : 'emerald') as any,
+          chalkColor: mapChalkColor('', idx),
           durationEstimateMs: 4200,
         };
       }
@@ -278,12 +306,18 @@ Output ONLY valid JSON matching this exact structure:
         latexContent: s.latexContent || s.latex || s.math || s.content || '',
         annotation: s.annotation || s.note || '',
         speechScript: s.speechScript || s.explanation || s.script || '',
-        chalkColor: (validChalkColors.includes(s.chalkColor)
-          ? s.chalkColor
-          : (idx === 1 ? 'amber' : idx === 2 ? 'rose' : idx === 3 ? 'cyan' : 'emerald')) as any,
+        chalkColor: mapChalkColor(s.chalkColor, idx),
         durationEstimateMs: typeof s.durationEstimateMs === 'number' ? s.durationEstimateMs : 4200,
       };
     });
+
+    // Parse Zone B Conceptual Mind Map
+    const zoneBMindMap = parsed.zone_b_mind_map && typeof parsed.zone_b_mind_map === 'object' ? {
+      root_topic: parsed.zone_b_mind_map.root_topic || parsed.domain_name || 'Core Topic',
+      branch_1_givens: parsed.zone_b_mind_map.branch_1_givens || 'Givens and Visual Inputs',
+      branch_2_interim: parsed.zone_b_mind_map.branch_2_interim || 'Interim Formulas & Connection Blocks',
+      branch_3_target: parsed.zone_b_mind_map.branch_3_target || 'Final Evaluation Target',
+    } : undefined;
 
     const nodePositions: Record<string, { x: number; y: number }> = {
       N1_PREMISE: { x: 50, y: 180 },
@@ -298,7 +332,7 @@ Output ONLY valid JSON matching this exact structure:
     const rawGraphNodes = Array.isArray(parsed.graph_nodes) ? parsed.graph_nodes : [];
     if (rawGraphNodes.length >= 4) {
       graphNodes = rawGraphNodes.map((n: any, idx: number) => {
-        const id = (typeof n === 'object' && n.id) || (idx === 0 ? 'N1_PREMISE' : idx === 1 ? 'N2_PIVOT' : idx === 2 ? 'N3_DERAILED' : idx === 3 ? 'N4_CONTRADICTION' : idx === 4 ? 'N5_CANONICAL' : 'N6_SOCRATIC');
+        const id = (typeof n === 'object' && (n.id || n.node_id)) || (idx === 0 ? 'N1_PREMISE' : idx === 1 ? 'N2_PIVOT' : idx === 2 ? 'N3_DERAILED' : idx === 3 ? 'N4_CONTRADICTION' : idx === 4 ? 'N5_CANONICAL' : 'N6_SOCRATIC');
         if (typeof n === 'string') {
           return {
             id,
@@ -313,8 +347,8 @@ Output ONLY valid JSON matching this exact structure:
         }
         return {
           id,
-          type: n.type || (id === 'N1_PREMISE' ? 'SOUND_PREMISE' : id === 'N2_PIVOT' ? 'CRITICAL_PIVOT' : id.includes('DERAILED') || id.includes('CONTRADICTION') ? 'DERAILED_BRANCH' : id.includes('CANONICAL') ? 'CANONICAL_PATH' : 'SOCRATIC_CHECKPOINT'),
-          label: n.label || `Node ${idx + 1}`,
+          type: n.type || n.node_type || (id === 'N1_PREMISE' ? 'SOUND_PREMISE' : id === 'N2_PIVOT' ? 'CRITICAL_PIVOT' : id.includes('DERAILED') || id.includes('CONTRADICTION') ? 'DERAILED_BRANCH' : id.includes('CANONICAL') ? 'CANONICAL_PATH' : 'SOCRATIC_CHECKPOINT'),
+          label: n.label || n.title || `Node ${idx + 1}`,
           mathLatex: n.mathLatex || '',
           description: n.description || '',
           badge: n.badge || (id === 'N1_PREMISE' ? 'SOUND PREMISE' : id === 'N2_PIVOT' ? 'CRITICAL PIVOT' : id.includes('DERAILED') ? 'DERAILED BRANCH' : id.includes('CONTRADICTION') ? 'CONTRADICTION' : id.includes('CANONICAL') ? 'CANONICAL PATH' : 'SOCRATIC CHECKPOINT'),
@@ -323,17 +357,17 @@ Output ONLY valid JSON matching this exact structure:
         };
       });
     } else {
-      // Synthesize 6 canonical nodes from board steps and concepts
-      const cConcept = parsed.canonical_concept || 'Governing First Principles';
+      const cConcept = zoneBMindMap?.branch_2_interim || parsed.canonical_concept || 'Governing First Principles';
       const rMis = parsed.root_misconception || 'Unverified Assumption';
       const dReason = parsed.derailment_reason || 'Reasoning diverged at pivot';
+      const targetState = zoneBMindMap?.branch_3_target || boardSteps[4]?.latexContent || 'Target State';
       graphNodes = [
-        { id: 'N1_PREMISE', type: 'SOUND_PREMISE', label: boardSteps[0]?.title || 'Step 1: System Givens', mathLatex: boardSteps[0]?.latexContent || '', description: 'Initial parameters and boundary conditions.', badge: 'SOUND PREMISE', audioScriptIndic: 'System initial conditions established.', position: nodePositions['N1_PREMISE'] },
-        { id: 'N2_PIVOT', type: 'CRITICAL_PIVOT', label: boardSteps[1]?.title || 'Step 2: Governing Decision', mathLatex: 'First Principles vs Local Intuition', description: 'Branch point where canonical principle diverges from misconception.', badge: 'CRITICAL PIVOT', audioScriptIndic: 'Critical decision point in derivation.', position: nodePositions['N2_PIVOT'] },
+        { id: 'N1_PREMISE', type: 'SOUND_PREMISE', label: zoneBMindMap ? 'Branch 1: Givens' : (boardSteps[0]?.title || 'Step 1: System Givens'), mathLatex: zoneBMindMap?.branch_1_givens || boardSteps[0]?.latexContent || '', description: 'Initial parameters and boundary conditions.', badge: 'SOUND PREMISE', audioScriptIndic: 'System initial conditions established.', position: nodePositions['N1_PREMISE'] },
+        { id: 'N2_PIVOT', type: 'CRITICAL_PIVOT', label: zoneBMindMap ? `Root: ${zoneBMindMap.root_topic.slice(0, 24)}` : (boardSteps[1]?.title || 'Step 2: Governing Decision'), mathLatex: 'First Principles vs Local Intuition', description: 'Branch point where canonical principle diverges from misconception.', badge: 'CRITICAL PIVOT', audioScriptIndic: 'Critical decision point in derivation.', position: nodePositions['N2_PIVOT'] },
         { id: 'N3_DERAILED', type: 'DERAILED_BRANCH', label: `Derailed: ${rMis.slice(0, 30)}`, mathLatex: dReason.slice(0, 40), description: rMis, badge: 'DERAILED BRANCH', audioScriptIndic: 'Cognitive misconception occurred.', position: nodePositions['N3_DERAILED'] },
-        { id: 'N4_CONTRADICTION', type: 'DERAILED_BRANCH', label: 'Option Mismatch / Contradiction', mathLatex: 'Result \\neq Options', description: 'Produces conflicting result contradicting system boundaries.', badge: 'CONTRADICTION', audioScriptIndic: 'Contradiction with valid physics options.', position: nodePositions['N4_CONTRADICTION'] },
-        { id: 'N5_CANONICAL', type: 'CANONICAL_PATH', label: `Canonical: ${cConcept.slice(0, 30)}`, mathLatex: boardSteps[3]?.latexContent || boardSteps[2]?.latexContent || '', description: cConcept, badge: 'CANONICAL PATH', audioScriptIndic: 'Governing first principles invariant restored.', position: nodePositions['N5_CANONICAL'] },
-        { id: 'N6_SOCRATIC', type: 'SOCRATIC_CHECKPOINT', label: boardSteps[4]?.title || 'Step 5: Verified Solution', mathLatex: boardSteps[4]?.latexContent || '', description: 'Verified target answer.', badge: 'SOCRATIC CHECKPOINT', audioScriptIndic: 'Correct answer and self-correction checkpoint.', position: nodePositions['N6_SOCRATIC'] },
+        { id: 'N4_CONTRADICTION', type: 'DERAILED_BRANCH', label: 'Option Inconsistency', mathLatex: 'Result \\neq Options', description: 'Produces conflicting result contradicting system boundaries.', badge: 'CONTRADICTION', audioScriptIndic: 'Contradiction with valid physics options.', position: nodePositions['N4_CONTRADICTION'] },
+        { id: 'N5_CANONICAL', type: 'CANONICAL_PATH', label: zoneBMindMap ? 'Branch 2: Interim Formulas' : `Canonical: ${cConcept.slice(0, 30)}`, mathLatex: boardSteps[3]?.latexContent || boardSteps[2]?.latexContent || '', description: cConcept, badge: 'CANONICAL PATH', audioScriptIndic: 'Governing first principles invariant restored.', position: nodePositions['N5_CANONICAL'] },
+        { id: 'N6_SOCRATIC', type: 'SOCRATIC_CHECKPOINT', label: zoneBMindMap ? 'Branch 3: Target State' : (boardSteps[4]?.title || 'Step 5: Verified Solution'), mathLatex: targetState, description: 'Verified target answer matching correct option.', badge: 'SOCRATIC CHECKPOINT', audioScriptIndic: 'Correct answer and self-correction checkpoint.', position: nodePositions['N6_SOCRATIC'] },
       ];
     }
 
@@ -345,7 +379,7 @@ Output ONLY valid JSON matching this exact structure:
       { id: 'e5', source: 'N5_CANONICAL', target: 'N6_SOCRATIC', label: 'Verified Solution', status: 'valid', animated: false },
     ];
 
-    if (boardSteps.length >= 3 && graphNodes.length >= 4) {
+    if (boardSteps.length >= 3) {
       return {
         domainId: parsed.domain_id || 'dynamic_solved',
         domainName: parsed.domain_name || 'Academic Reasoning & STEM Derivation',
@@ -357,6 +391,7 @@ Output ONLY valid JSON matching this exact structure:
         socraticPrompt: parsed.socratic_prompt || 'Reflect on the governing constraint: how does the system invariant resolve this divergence?',
         hinglishPrompt: parsed.hinglish_prompt || 'Step 2 par gaur karein: governing invariant ko apply karne se kya difference aata hai?',
         narrationScript: parsed.narration_script || '',
+        zoneBMindMap,
         boardSteps,
         graphNodes,
         graphEdges,

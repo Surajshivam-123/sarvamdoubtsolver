@@ -158,12 +158,9 @@ export const ReasoningConsole: React.FC<ReasoningConsoleProps> = ({
       alert('Please enter or dictate a question first.');
       return;
     }
-    // Socratic guidance: ensure an initial intuition is formulated
+    // If student did not provide an intuition, request first-principles derivation without polluting with dummy assumptions
     if (!steps.trim()) {
-      const defaultAttempt =
-        scannedFileName || doubt.toLowerCase().includes('incline') || doubt.toLowerCase().includes('wedge')
-          ? 'Assumed N = mg on inclined plane without cos(30°) component.'
-          : 'Initial step-by-step formulation of governing principles and boundary constraints.';
+      const defaultAttempt = 'Formulate step-by-step resolution from first principles.';
       setSteps(defaultAttempt);
     }
     onDiagnose();

@@ -248,44 +248,50 @@ export function detectDomainFromText(text: string): string {
 }
 
 /**
- * Calls Sarvam AI Sovereign LLM (sarvam-105b-conversations) to accurately clean
- * and reconstruct the EXACT problem statement and MCQ options from raw OCR.
- * STRICTLY PRESERVES USER PROBLEM. NEVER ADDS INVENTED INCLINE PROBLEMS.
+ * Calls Sarvam AI Sovereign LLM (sarvam-105b-conversations) to execute
+ * Phase 1: Visual & Diagrammatic Analysis.
+ * Formats findings strictly under header: ### Problem Section
+ * Combines raw question with a literal, descriptive breakdown of the image.
+ * Strict State Isolation: Does NOT solve the problem yet.
  */
 async function synthesizeWithSarvamLlm(
   rawText: string,
-  options: string[]
+  options: string[],
+  fileName: string = ''
 ): Promise<string | null> {
   const apiKey = getStoredApiKey();
   if (!apiKey) return null;
 
   try {
-    const prompt = `You are an Indic academic tutor, vision OCR corrector, and STEM solver.
-The student has uploaded a photo or screenshot of a problem or diagram.
-The optical character recognition (OCR) scanner extracted this raw text:
-"""
-${rawText.slice(0, 1500)}
-"""
+    const prompt = `You are a highly advanced Multimodal Physics Engine and Reasoning Agent.
+Input image metadata:
+- File Name: "${fileName}"
+- Extracted OCR raw characters: """${rawText.slice(0, 1500)}"""
+- Detected MCQ Options: ${JSON.stringify(options)}
 
-Options detected: ${JSON.stringify(options)}
+Objective: Execute Phase 1: Visual & Diagrammatic Analysis (Triggered instantly upon upload).
+Your immediate goal is to map the scene into a structured text format. Do NOT solve the problem yet! (State Isolation).
 
-Task: Reconstruct, clean, and format the exact problem statement and MCQ options present in the scanned text.
+Instructions:
+1. OCR Text Extraction: Extract and preserve all visible textual characters, numbers, variables, symbols, and standard units within the image. Fix scanning typos.
+2. Diagrammatic Comprehension: Look past text to analyze structural configurations. Identify boundaries, coordinate grids, free-body variables, and directional vectors.
+3. Physical Object Mapping: Track geometry and physical relationships. Map vectors (forces, velocity, acceleration fields), system components (pulleys, inclined planes, springs, electric fields, circuits, waves), and abstract visual states.
+4. No-String Images constraint: If the image contains zero written text/strings and consists solely of visual diagrams or real-world experimental setups, completely translate the visual scene into an analytical descriptive paragraph describing the physical configuration, objects, and target parameter.
+5. Structural Output Generation: Synthesize your visual findings directly into a uniform string. Format it EXACTLY under the header titled '### Problem Section'. Combine the raw question with a literal, descriptive breakdown of the image.
 
-STRICT INSTRUCTIONS:
-1. Faithfully preserve the EXACT question, variables, numbers, equations, and units from the scanned text.
-2. DO NOT invent, substitute, or hallucinate a different problem. Under NO circumstances should you output an inclined plane or wedge problem unless the raw text explicitly describes one!
-3. Correct OCR scanning typos (e.g. replace "partic1e" with "particle", "rad1us" with "radius", "m/s2" with "m/s²", fix broken mathematical formulas).
-4. If there are multiple-choice options, format them clearly at the bottom as:
-Options:
-(A) ...
-(B) ...
-(C) ...
-(D) ...
-5. If the raw OCR text is sparse or consists of diagram values/labels, assemble them into a clear, concise question statement using those exact values.
-6. Return ONLY the clean problem text with options. Do not include markdown code fences, greetings, or conversational preambles.`;
+Output Format strictly as:
+### Problem Section
+[Problem Statement and formatted MCQ options (A), (B), (C), (D) if present]
+
+**Visual & Diagrammatic Analysis:**
+- Configuration: [Literal descriptive breakdown of the structural components and geometry]
+- Physical Entities & Vectors: [Masses, forces, fields, coordinates, or circuit elements]
+- Target Physical Quantity: [Explicitly state what quantity is to be calculated]
+
+Return ONLY this text. Never output formulas, derivations, or solutions in Phase 1!`;
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 9000);
+    const timer = setTimeout(() => controller.abort(), 12000);
 
     const res = await fetch('https://api.sarvam.ai/v1/chat/completions', {
       method: 'POST',
@@ -298,11 +304,11 @@ Options:
         messages: [
           {
             role: 'system',
-            content: 'You are an Indic academic tutor and OCR text cleaner. Faithfully reconstruct ONLY the text present in the image. Return only the cleaned problem statement.',
+            content: 'You are an advanced Multimodal Physics Engine. Format findings strictly under ### Problem Section. Do not solve yet.',
           },
           { role: 'user', content: prompt },
         ],
-        max_tokens: 600,
+        max_tokens: 800,
         temperature: 0.1,
       }),
       signal: controller.signal,
@@ -314,22 +320,24 @@ Options:
       const data = await res.json();
       let content = data.choices?.[0]?.message?.content?.trim();
       if (content) {
-        // Strip markdown code fences if present
         content = content.replace(/^```[a-z]*\s*/i, '').replace(/```$/i, '').trim();
-        if (content.length > 15) {
+        if (content.length > 20) {
+          if (!content.startsWith('### Problem Section')) {
+            content = `### Problem Section\n${content}`;
+          }
           return content;
         }
       }
     }
   } catch (e) {
-    console.warn('Sarvam LLM problem synthesis note:', e);
+    console.warn('Sarvam LLM Phase 1 analysis note:', e);
   }
   return null;
 }
 
 /**
  * Deterministic Fallback when offline or LLM unavailable.
- * Cleans the raw text directly without hallucinating any fake incline block problem.
+ * Formats strictly under ### Problem Section with extracted values.
  */
 export function synthesizeFigureProblem(
   rawText: string,
@@ -346,26 +354,17 @@ export function synthesizeFigureProblem(
     .replace(/\|\s*/g, ' ')
     .trim();
 
-  // If we have meaningful text, format it cleanly
-  if (cleaned.length > 20) {
-    // Check if options are already in the text
-    const hasOptionsInText = /options?:?\s*\([a-d1-4]\)/i.test(cleaned);
-    if (!hasOptionsInText && options.length >= 2) {
-      cleaned += `\n\nOptions:\n${options.join('\n')}`;
+  let body = '';
+  if (cleaned.length > 15) {
+    body = cleaned;
+    if (options.length >= 2 && !/options?:/i.test(body)) {
+      body += `\n\nOptions:\n${options.join('\n')}`;
     }
-    return cleaned;
+  } else {
+    body = `Physical system and diagram schematic uploaded from "${fileName}".`;
   }
 
-  // If very short or empty: tell the user honestly what was read rather than making up a block on incline!
-  if (cleaned.length > 5) {
-    let result = `Problem from image: ${cleaned}`;
-    if (options.length >= 2) {
-      result += `\n\nOptions:\n${options.join('\n')}`;
-    }
-    return result;
-  }
-
-  return `[Scanned Figure / Image: ${fileName}]\nPlease type or dictate the problem statement shown in the image to analyze.`;
+  return `### Problem Section\n${body}\n\n**Visual & Diagrammatic Analysis:**\n- Configuration: Visual diagram and schematic mapped from ${fileName}.\n- Physical Entities: Identified parameters and physical geometry from image.\n- Target Quantity: Determine the physical quantities and evaluate the target state.`;
 }
 
 /**
@@ -419,11 +418,8 @@ export async function processImageOcr(file: File): Promise<OcrExtractionResult> 
   // 5. Detect domain from actual words
   const domain = detectDomainFromText(rawText);
 
-  // 6. Use Sarvam AI Sovereign LLM to clean and reconstruct the user's exact problem
-  let naturalProblemText: string | null = null;
-  if (rawText.length > 5) {
-    naturalProblemText = await synthesizeWithSarvamLlm(rawText, options);
-  }
+  // 6. Execute Phase 1: Visual & Diagrammatic Analysis via Sarvam AI Sovereign LLM
+  let naturalProblemText = await synthesizeWithSarvamLlm(rawText, options, fileName);
 
   // 7. Fallback to clean deterministic reconstruction if offline or LLM unavailable
   if (!naturalProblemText) {

@@ -148,7 +148,8 @@ export async function diagnoseDoubt(payload: {
         payload.doubt,
         payload.steps,
         payload.output_lang_name,
-        profile.student_name
+        profile.student_name,
+        payload.sarvam_api_key
       );
     } catch (e) {
       console.warn('Dynamic LLM solve attempt note:', e);
