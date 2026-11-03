@@ -309,13 +309,17 @@ def diagnose_doubt_semantic(
     doubt_lower = (doubt + " " + student_concept + " " + student_steps).lower()
 
     matched_key = None
-    if "a(t)" in doubt_lower or "variable" in doubt_lower or "v = u + at" in doubt_lower or "3t" in doubt_lower:
+    if any(k in doubt_lower for k in ["rough", "friction", "spring", "घर्षण", "स्प्रिंग"]):
+        matched_key = "spring_friction_energy"
+    elif any(k in doubt_lower for k in ["horse", "cart", "action", "घोड़ा"]):
+        matched_key = "newton_third_law_horse_cart"
+    elif any(k in doubt_lower for k in ["circular", "centrifugal", "turn", "curve", "loop"]):
+        matched_key = "circular_motion_turn"
+    elif any(k in doubt_lower for k in ["skater", "spin", "angular momentum", "torque", "moment of inertia"]):
+        matched_key = "rotational_skater_spin"
+    elif any(k in doubt_lower for k in ["a(t)", "variable", "v = u + at", "3t"]):
         matched_key = "kinematics_variable_acc"
-    elif "incline" in doubt_lower or "friction" in doubt_lower or "work-energy" in doubt_lower or "rough" in doubt_lower:
-        matched_key = "incline_friction_work_energy"
-    elif "vertical circle" in doubt_lower or "slack" in doubt_lower or "centrifugal" in doubt_lower or "whirled" in doubt_lower:
-        matched_key = "vertical_circle_centripetal"
-    elif "haber" in doubt_lower or "catalyst" in doubt_lower or "le chatelier" in doubt_lower or "nh3" in doubt_lower:
+    elif any(k in doubt_lower for k in ["haber", "catalyst", "le chatelier", "nh3"]):
         matched_key = "chemistry_le_chatelier_catalyst"
 
     if matched_key and matched_key in SAMPLE_DOUBTS:
@@ -385,7 +389,22 @@ def diagnose_doubt_semantic(
     }
 
     # Generate multilingual voice script tailored to student's language
-    narration_script = synthesize_multilingual_narration(diag_summary, preferred_language)
+    if matched_key and matched_key in SAMPLE_DOUBTS:
+        sample = SAMPLE_DOUBTS[matched_key]
+        if preferred_language == "hi-IN" and sample.get("narration_hi"):
+            narration_script = sample["narration_hi"]
+        elif preferred_language == "en-IN" and sample.get("narration_en"):
+            narration_script = sample["narration_en"]
+        else:
+            base_script = sample.get("narration_en", "")
+            try:
+                import sarvam_tts
+                narration_script = sarvam_tts.translate_with_sarvam_hybrid(base_script, preferred_language)
+            except Exception:
+                narration_script = synthesize_multilingual_narration(diag_summary, preferred_language)
+    else:
+        narration_script = synthesize_multilingual_narration(diag_summary, preferred_language)
+
     diag_summary["narration_script"] = narration_script
 
     return diag_summary

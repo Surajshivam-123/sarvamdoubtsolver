@@ -8,6 +8,9 @@ A pedagogical Streamlit web application that:
    - Map A: Student's Actual Path (Coral/Red error nodes)
    - Map B: Remediated Conceptual Path (Emerald Green pivot nodes)
 5. Delivers multilingual auditory narration using Sarvam AI Text-to-Speech (TTS)
+   - Supports 10 Indian languages with native bulbul:v3 speakers
+   - Natural classroom Hinglish STEM terminology preservation
+   - Streamlit Cloud & local zero-friction deployment
 """
 
 import os
@@ -27,15 +30,14 @@ from sample_doubts import SAMPLE_DOUBTS
 # Page Configuration & Modern Theme Styling
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title="Bhasha Doubt Solver | भाषा डाउट सॉल्वर",
-    page_icon="💡",
+    page_title="Universal Bhasha Doubt Solver (Hinglish/Hybrid)",
+    page_icon="🧭",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 CUSTOM_CSS = """
 <style>
-    /* Global Styles */
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
     
     html, body, [class*="css"] {
@@ -93,12 +95,6 @@ CUSTOM_CSS = """
         margin-bottom: 1.25rem;
         border: 1px solid #e2e8f0;
         box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
-    }
-
-    .dark-mode-card {
-        background-color: #1e293b;
-        border-color: #334155;
-        color: #f8fafc;
     }
 
     .misconception-callout {
@@ -181,10 +177,56 @@ for key in ["form_doubt", "form_concept", "form_steps", "form_breakdown"]:
 # Sidebar: Identity, Profile, Settings & Mastery Graph
 # ---------------------------------------------------------
 with st.sidebar:
-    st.image("https://api.iconify.design/fluent-emoji:brain.svg", width=48)
-    st.markdown("### 🎓 Learner Identity & Profile")
+    st.title("🌐 Language Matrix")
+    st.caption("Pedagogical Hybrid / Hinglish Support")
 
-    # Available profiles
+    input_lang_name = st.selectbox(
+        "Input Language (Student types):",
+        options=list(sarvam_tts.LANGUAGE_REGISTRY.keys()),
+        index=0,
+    )
+
+    output_lang_name = st.selectbox(
+        "Output Language (Thought Maps & Voice):",
+        options=list(sarvam_tts.LANGUAGE_REGISTRY.keys()),
+        index=1,  # Default to Hindi (Hinglish)
+    )
+    target_cfg = sarvam_tts.LANGUAGE_REGISTRY[output_lang_name]
+    lang_code = target_cfg["code"]
+    default_speaker = target_cfg["speaker"]
+
+    st.divider()
+
+    st.subheader("🔑 Sarvam AI API")
+    detected_key = sarvam_tts.get_configured_api_key()
+    sarvam_key = st.text_input(
+        "API Subscription Key",
+        value=detected_key,
+        type="password",
+        placeholder="Enter your api-subscription-key",
+        help="Loaded automatically from st.secrets or .env. Used for translation and speech dictation."
+    )
+
+    speaker = st.selectbox(
+        "Speaker Voice:",
+        options=[default_speaker, "ritu", "aditya", "priya", "simran", "soham", "gokul", "kavitha", "pooja", "chaitra", "anand"],
+        index=0
+    )
+
+    tts_model = st.selectbox("TTS Model:", options=sarvam_tts.MODEL_OPTIONS, index=0)
+
+    if sarvam_key:
+        st.markdown("<span class='badge-pill badge-green'>✓ Sarvam API Key Active</span>", unsafe_allow_html=True)
+    else:
+        st.markdown("<span class='badge-pill badge-amber'>ℹ Acoustic Preview Mode Active</span>", unsafe_allow_html=True)
+
+    if "Hindi" in output_lang_name:
+        st.info("💡 **Hinglish Mode Active:** Scientific terms (Friction, Energy, Conservation, FBD) are kept in natural conversational English for pedagogical clarity.")
+
+    st.divider()
+
+    # Longitudinal Learner Identity & Profile
+    st.subheader("🎓 Longitudinal Profile")
     profiles_list = learner_model.list_available_profiles()
     profile_options = {p["student_id"]: f"{p['student_name']} ({p['student_id']})" for p in profiles_list}
     
@@ -208,14 +250,10 @@ with st.sidebar:
 
     profile = st.session_state.current_profile
 
-    # Quick profile meta
-    st.markdown(f"**Name:** {profile.get('student_name', 'Student')}")
-    st.markdown(f"**Total Past Errors Logged:** `{len(profile.get('error_history', []))}`")
-
     # Longitudinal Profile Actions (Reset / Export / Import)
     col_reset, col_exp = st.columns(2)
     with col_reset:
-        if st.button("🔄 Reset Profile", use_container_width=True, help="Reset mastery map and clear error logs"):
+        if st.button("🔄 Reset Profile", use_container_width=True):
             st.session_state.current_profile = learner_model.reset_profile(st.session_state.selected_student_id)
             st.session_state.diagnosis_result = None
             st.session_state.audio_bytes = None
@@ -247,49 +285,8 @@ with st.sidebar:
 
     st.divider()
 
-    # Audio & Voice Settings
-    st.markdown("### 🔊 Sarvam AI Voice Settings")
-    lang_code = st.selectbox(
-        "Preferred Language:",
-        options=list(sarvam_tts.LANGUAGE_OPTIONS.keys()),
-        index=list(sarvam_tts.LANGUAGE_OPTIONS.keys()).index(profile.get("preferred_language", "hi-IN")) if profile.get("preferred_language") in sarvam_tts.LANGUAGE_OPTIONS else 0,
-        format_func=lambda x: f"{sarvam_tts.LANGUAGE_OPTIONS[x]['name']} [{x}]"
-    )
-
-    # Update profile language if changed
-    if lang_code != profile.get("preferred_language"):
-        profile["preferred_language"] = lang_code
-        learner_model.save_profile(profile)
-
-    available_speakers = sarvam_tts.LANGUAGE_OPTIONS[lang_code]["speakers"]
-    default_speaker = sarvam_tts.LANGUAGE_OPTIONS[lang_code]["default_speaker"]
-    speaker = st.selectbox(
-        "Speaker Voice:",
-        options=available_speakers,
-        index=available_speakers.index(profile.get("preferred_voice", default_speaker)) if profile.get("preferred_voice") in available_speakers else 0
-    )
-
-    tts_model = st.selectbox("Sarvam TTS Model:", options=sarvam_tts.MODEL_OPTIONS, index=0)
-
-    # Sarvam API Key input
-    env_key = os.getenv("SARVAM_API_KEY", "")
-    sarvam_key = st.text_input(
-        "Sarvam AI Subscription Key:",
-        value=env_key,
-        type="password",
-        placeholder="Enter your api-subscription-key",
-        help="Pulled from SARVAM_API_KEY environment variable if available. When omitted, high-fidelity acoustic simulation is used."
-    )
-
-    if sarvam_key:
-        st.markdown("<span class='badge-pill badge-green'>✓ Sarvam API Key Configured</span>", unsafe_allow_html=True)
-    else:
-        st.markdown("<span class='badge-pill badge-amber'>ℹ Acoustic Preview Mode Active</span>", unsafe_allow_html=True)
-
-    st.divider()
-
     # Persistent Knowledge Graph / Mastery Dashboard
-    st.markdown("### 📊 Longitudinal Mastery Map")
+    st.subheader("📊 Mastery Dashboard")
     mastery = profile.get("mastery_map", {})
     
     solid_count = sum(1 for s in mastery.values() if s == "solid")
@@ -325,27 +322,24 @@ with st.sidebar:
                     f"<small><i>{err.get('type')}</i> — {err.get('details', '')[:80]}</small>",
                     unsafe_allow_html=True
                 )
-                if idx < 4:
-                    st.write("")
 
     with st.expander("🔍 Injected Pedagogical Context"):
-        st.caption("This context string is injected into every diagnostic turn to cross-reference prior flaws:")
+        st.caption("This context string is injected into every diagnostic turn:")
         st.code(learner_model.build_pedagogical_context(profile), language="markdown")
 
 
 # ---------------------------------------------------------
 # Main Application Content
 # ---------------------------------------------------------
-# Header Banner
 st.markdown(
     f"""
     <div class="main-title-container">
-        <div class="main-title">Bhasha Doubt Solver <span style="font-size:1.4rem; font-weight:500;">(भाषा डाउट सॉल्वर)</span></div>
-        <div class="main-subtitle">Socratic Cognitive Remediation & Longitudinal Indian Language Audio Tutoring</div>
+        <div class="main-title">Universal Bhasha Doubt Solver <span style="font-size:1.4rem; font-weight:500;">(भाषा डाउट सॉल्वर)</span></div>
+        <div class="main-subtitle">Input in <b>{input_lang_name}</b> ➡️ Natural Pedagogical Remediation & Audio in <b>{output_lang_name}</b></div>
         <div style="margin-top: 0.8rem;">
             <span class="badge-pill badge-green">Pedagogical Guardrails (No Direct Answers)</span>
             <span class="badge-pill badge-blue">Longitudinal Learner Profile</span>
-            <span class="badge-pill badge-coral">Dual Thought Process Visualizer (Graphviz)</span>
+            <span class="badge-pill badge-coral">Dual Thought Maps (Graphviz)</span>
             <span class="badge-pill badge-purple">Sarvam AI Indian Language TTS</span>
         </div>
     </div>
@@ -354,10 +348,10 @@ st.markdown(
 )
 
 # ---------------------------------------------------------
-# Fast-Track Sample Problem Loader
+# 1-Click Instant Demos (With Natural Hinglish Terminology)
 # ---------------------------------------------------------
-st.markdown("#### ⚡ Quick-Load Classic Indian STEM Pitfalls (1-Click Test):")
-sample_cols = st.columns(4)
+st.markdown("#### ⚡ 1-Click Demos (With Natural Hinglish Terminology):")
+demo_cols = st.columns(4)
 
 def load_sample(key: str):
     s = SAMPLE_DOUBTS[key]
@@ -370,31 +364,31 @@ def load_sample(key: str):
     st.session_state.socratic_response_msg = None
     st.session_state.socratic_solved = False
 
-with sample_cols[0]:
-    if st.button("🏎️ Kinematics a(t)=3t", use_container_width=True):
-        load_sample("kinematics_variable_acc")
+with demo_cols[0]:
+    if st.button("🏔️ Spring & Friction", use_container_width=True):
+        load_sample("spring_friction_energy")
         st.rerun()
 
-with sample_cols[1]:
-    if st.button("🏔️ Incline Friction Energy", use_container_width=True):
-        load_sample("incline_friction_work_energy")
+with demo_cols[1]:
+    if st.button("🐎 Newton's 3rd Law", use_container_width=True):
+        load_sample("newton_third_law_horse_cart")
         st.rerun()
 
-with sample_cols[2]:
-    if st.button("🎡 Vertical Loop Tension", use_container_width=True):
-        load_sample("vertical_circle_centripetal")
+with demo_cols[2]:
+    if st.button("🏎️ Circular Turn", use_container_width=True):
+        load_sample("circular_motion_turn")
         st.rerun()
 
-with sample_cols[3]:
-    if st.button("🧪 Le Chatelier Catalyst", use_container_width=True):
-        load_sample("chemistry_le_chatelier_catalyst")
+with demo_cols[3]:
+    if st.button("⛸️ Skater Spin", use_container_width=True):
+        load_sample("rotational_skater_spin")
         st.rerun()
 
 
 # ---------------------------------------------------------
 # STAGE 1: Socratic Elicitation (No Direct Answers Guardrail)
 # ---------------------------------------------------------
-st.markdown("### 📝 Stage 1: Problem Articulation & Mental Model Elicitation")
+st.markdown(f"### 📝 Stage 1: Problem Articulation & Mental Model ({input_lang_name})")
 st.markdown(
     "> 🛡️ **Pedagogical Guardrail:** The system enforces active cognitive retrieval. "
     "To diagnose the exact derailment point, articulate your current understanding rather than seeking formula plugs."
@@ -402,50 +396,47 @@ st.markdown(
 
 with st.container():
     doubt_input = st.text_area(
-        "1. Problem Statement or Question Doubt:",
+        f"1. Problem Statement or Question Doubt ({input_lang_name}):",
         value=st.session_state.form_doubt,
-        height=75,
+        height=85,
         placeholder="Enter the STEM question or doubt here..."
     )
 
     col_e1, col_e2 = st.columns(2)
     with col_e1:
         concept_input = st.text_input(
-            "2. What concept / law do you believe applies?",
+            f"2. What concept / law do you believe applies? ({input_lang_name})",
             value=st.session_state.form_concept,
-            placeholder="e.g. Conservation of Mechanical Energy, v = u + at, Centripetal Force"
+            placeholder="e.g. Conservation of Mechanical Energy, Action-Reaction, Centripetal Force"
         )
     with col_e2:
         breakdown_input = st.text_input(
-            "4. Where do you feel your reasoning breaks down or gets stuck?",
+            f"4. Where do you feel your reasoning breaks down or gets stuck? ({input_lang_name})",
             value=st.session_state.form_breakdown,
-            placeholder="e.g. The answer key is half my answer, or I get negative tension..."
+            placeholder="e.g. The compression is too large, or forces cancel out..."
         )
 
     steps_input = st.text_area(
-        "3. Your Step-by-Step Logic / Attempted Derivation So Far:",
+        f"3. Your Step-by-Step Logic / Attempted Derivation So Far ({input_lang_name}):",
         value=st.session_state.form_steps,
         height=110,
         placeholder="Step 1: ...\nStep 2: ...\nStep 3: ..."
     )
 
-    diagnose_btn = st.button("🔍 Diagnose Reasoning & Generate Comparative Thought Maps", type="primary", use_container_width=True)
+    diagnose_btn = st.button(f"🔍 Diagnose Reasoning in {output_lang_name}", type="primary", use_container_width=True)
 
 if diagnose_btn:
     if not doubt_input.strip() or not steps_input.strip():
         st.error("Please provide both the problem statement and your attempted step-by-step reasoning so we can diagnose your mental path!")
     else:
-        with st.spinner("Analyzing mental model, detecting cognitive derailment point, and compiling Graphviz thought maps..."):
-            # Update session state
+        with st.spinner(f"Analyzing mental model, detecting cognitive derailment point in {output_lang_name}..."):
             st.session_state.form_doubt = doubt_input
             st.session_state.form_concept = concept_input
             st.session_state.form_steps = steps_input
             st.session_state.form_breakdown = breakdown_input
 
-            # Build injected longitudinal context
             pedagogical_context = learner_model.build_pedagogical_context(profile)
 
-            # Diagnose reasoning
             diagnosis = pedagogy_engine.diagnose_doubt_semantic(
                 doubt=doubt_input,
                 student_concept=concept_input,
@@ -469,7 +460,7 @@ if diagnose_btn:
             st.session_state.current_profile = profile
 
             # Synthesize Sarvam AI TTS speech
-            with st.spinner(f"Synthesizing multilingual audio guidance via Sarvam AI ({lang_code}, speaker: {speaker})..."):
+            with st.spinner(f"Synthesizing speech via Sarvam AI ({output_lang_name}, speaker: {speaker})..."):
                 audio_bytes, audio_msg, is_real = sarvam_tts.synthesize_speech_sarvam(
                     text=diagnosis["narration_script"],
                     target_language_code=lang_code,
@@ -492,8 +483,8 @@ if diagnose_btn:
 if st.session_state.diagnosis_result:
     diag = st.session_state.diagnosis_result
 
-    st.markdown("---")
-    st.markdown("### 🗺️ Stage 2: Diagnostic Evaluation & Dual Thought Maps")
+    st.divider()
+    st.markdown(f"### 🗺️ Stage 2: Mental Model Diagnosis & Dual Thought Maps ({output_lang_name})")
 
     # Diagnostic Summary Box
     col_d1, col_d2 = st.columns([3, 2])
@@ -515,7 +506,6 @@ if st.session_state.diagnosis_result:
             unsafe_allow_html=True
         )
     with col_d2:
-        # Cross-reference with longitudinal profile
         past_errors = profile.get("error_history", [])
         same_concept_errors = [e for e in past_errors[:-1] if e.get("concept") == diag.get("canonical_concept")]
         if same_concept_errors:
@@ -595,13 +585,12 @@ if st.session_state.diagnosis_result:
     # ---------------------------------------------------------
     # STAGE 3: Sarvam AI Multilingual Audio & Socratic Guidance
     # ---------------------------------------------------------
-    st.markdown("---")
-    st.markdown("### 🎙️ Stage 3: Sarvam AI Multilingual Dictation & Socratic Follow-Up")
+    st.divider()
+    st.markdown(f"### 🎙️ Stage 3: Sarvam AI Voice Dictation & Socratic Checkpoint ({output_lang_name})")
 
-    # Audio player
     audio_col1, audio_col2 = st.columns([2, 3])
     with audio_col1:
-        st.markdown(f"#### 🔊 Audio Walkthrough ({sarvam_tts.LANGUAGE_OPTIONS.get(lang_code, {}).get('name', lang_code)}):")
+        st.markdown(f"#### 🔊 Audio Walkthrough ({output_lang_name}):")
         if st.session_state.audio_bytes:
             st.audio(st.session_state.audio_bytes, format="audio/wav")
             if st.session_state.audio_status_msg:
@@ -623,15 +612,15 @@ if st.session_state.diagnosis_result:
                 st.rerun()
 
     with audio_col2:
-        st.markdown("#### 📜 Dictation Transcript (Walks Student Through Nodes):")
-        st.info(f"🗣️ **Narration Script:**\n\n\"{diag.get('narration_script')}\"")
+        st.markdown(f"#### 📜 Spoken Narration Script ({output_lang_name}):")
+        st.info(f"🗣️ **Script:**\n\n\"{diag.get('narration_script')}\"")
 
-    # Socratic Follow-Up Question
+    # Socratic Checkpoint & Active Self-Correction
     st.markdown(
         f"""
         <div class="socratic-box">
             <div style="font-weight:700; color:#065f46; font-size:1.1rem; margin-bottom:0.5rem;">
-                🎯 Socratic Elicitation: Self-Correct Node {diag.get('derailment_step', 2)}
+                🎯 Socratic Checkpoint: Self-Correct Node {diag.get('derailment_step', 2)}
             </div>
             <div style="font-size:1.02rem; color:#044e39; line-height:1.5;">
                 {diag.get('socratic_prompt')}
@@ -641,12 +630,11 @@ if st.session_state.diagnosis_result:
         unsafe_allow_html=True
     )
 
-    # Interactive Student Answer Turn
     st.markdown("##### ✍️ Your Self-Correction Turn:")
     socratic_reply = st.text_area(
         "Reflect on the green Pivot Node and explain how you would correct your logic:",
         height=85,
-        placeholder="e.g. In step 2, acceleration is not constant because it depends on t, so I must integrate dv = 3t dt from 0 to 4...",
+        placeholder="e.g. In step 2, mechanical energy is not conserved because friction does negative work, so W_friction must be subtracted before equating to spring energy...",
         key="socratic_student_reply"
     )
 
@@ -665,7 +653,6 @@ if st.session_state.diagnosis_result:
             st.session_state.socratic_solved = is_resolved
 
             if is_resolved:
-                # Upgrade mastery in longitudinal profile
                 learner_model.resolve_misconception(profile, diag.get("canonical_concept", ""))
                 learner_model.save_profile(profile)
                 st.session_state.current_profile = profile
