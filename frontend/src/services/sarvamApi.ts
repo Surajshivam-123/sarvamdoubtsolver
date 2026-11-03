@@ -88,6 +88,12 @@ export function saveStoredApiKey(key: string): void {
 export function sanitizeLatexForSpeech(text: string): string {
   let clean = text
     .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1 divided by $2')
+    .replace(/\\boxed\{([^}]+)\}/g, 'Answer: $1')
+    .replace(/\\implies/g, ' implies ')
+    .replace(/\\approx/g, ' is approximately ')
+    .replace(/\\neq/g, ' is not equal to ')
+    .replace(/\\cdot/g, ' times ')
+    .replace(/\\times/g, ' times ')
     .replace(/\\sqrt\{([^}]+)\}/g, 'square root of $1')
     .replace(/\^2/g, ' squared')
     .replace(/\^3/g, ' cubed')
@@ -99,6 +105,10 @@ export function sanitizeLatexForSpeech(text: string): string {
     .replace(/\\alpha/g, 'alpha')
     .replace(/\\mu/g, 'mu')
     .replace(/\\pi/g, 'pi')
+    .replace(/\\lambda/g, 'lambda')
+    .replace(/\\rho/g, 'rho')
+    .replace(/\\sigma/g, 'sigma')
+    .replace(/\\epsilon/g, 'epsilon')
     .replace(/\+/g, ' plus ')
     .replace(/-(?!\w)/g, ' minus ')
     .replace(/=/g, ' equals ')
@@ -109,7 +119,7 @@ export function sanitizeLatexForSpeech(text: string): string {
     .replace(/\*/g, ' times ')
     .replace(/%/g, ' percent')
     .replace(/\$/g, '')
-    .replace(/\\[a-zA-Z]+/g, '')
+    .replace(/\\[a-zA-Z]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
@@ -260,22 +270,45 @@ export function concatenateWavBase64(base64Audios: string[]): string {
   return btoa(resultBinary);
 }
 
-export function splitIntoAudioChunks(text: string, maxLen: number = 420): string[] {
-  if (text.length <= maxLen) return [text];
-  const sentences = text.match(/[^.!?।\n]+[.!?।\n]+/g) || [text];
+export function splitIntoAudioChunks(text: string, maxLen: number = 380): string[] {
+  if (!text) return [];
+  const clean = sanitizeLatexForSpeech(text);
+  if (clean.length <= maxLen) return [clean];
+
+  // Tokenize by sentence ends (. ! ? । ; or newline)
+  const tokens = clean.split(/(?<=[.!?।;\n])\s+/);
   const chunks: string[] = [];
   let current = '';
 
-  for (const s of sentences) {
-    if ((current + ' ' + s).trim().length <= maxLen) {
-      current = (current + ' ' + s).trim();
+  for (const token of tokens) {
+    if (token.length > maxLen) {
+      if (current.trim()) {
+        chunks.push(current.trim());
+        current = '';
+      }
+      const words = token.split(/\s+/);
+      let sub = '';
+      for (const w of words) {
+        if ((sub + ' ' + w).length <= maxLen) {
+          sub = (sub + ' ' + w).trim();
+        } else {
+          if (sub.trim()) chunks.push(sub.trim());
+          sub = w;
+        }
+      }
+      if (sub.trim()) current = sub.trim();
+      continue;
+    }
+
+    if ((current + ' ' + token).length <= maxLen) {
+      current = (current + ' ' + token).trim();
     } else {
-      if (current) chunks.push(current);
-      current = s.trim().slice(0, maxLen);
+      if (current.trim()) chunks.push(current.trim());
+      current = token.trim();
     }
   }
-  if (current) chunks.push(current);
-  return chunks.length > 0 ? chunks.slice(0, 4) : [text.slice(0, maxLen)];
+  if (current.trim()) chunks.push(current.trim());
+  return chunks.slice(0, 5);
 }
 
 /**

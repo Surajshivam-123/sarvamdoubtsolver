@@ -114,8 +114,6 @@ Output strictly valid JSON with keys:
   "derailment_step": 2,
   "derailment_reason": "string",
   "socratic_prompt": "string",
-  "hinglish_prompt": "string",
-  "narration_script": "string (masterclass spoken explanation in ${outputLangName})",
   "zone_a_board_steps": [
     {
       "stepIndex": 1,
@@ -135,7 +133,7 @@ Output strictly valid JSON with keys:
     },
     {
       "stepIndex": 3,
-      "title": "Zone A.3: Mathematical Derivation & Intermediate Steps",
+      "title": "Zone A.3: Mathematical Derivation & Computation",
       "latexContent": "...",
       "annotation": "...",
       "speechScript": "...",
@@ -143,14 +141,6 @@ Output strictly valid JSON with keys:
     },
     {
       "stepIndex": 4,
-      "title": "Zone A.3: Quantitative Computation & Algebra",
-      "latexContent": "...",
-      "annotation": "...",
-      "speechScript": "...",
-      "chalkColor": "cyan"
-    },
-    {
-      "stepIndex": 5,
       "title": "Zone A.4: Final Dimensional State & Validated Option",
       "latexContent": "\\boxed{\\text{Answer: } ... \\implies \\text{Option (X)}}",
       "annotation": "Exact physical result conforming to problem key",
@@ -163,63 +153,7 @@ Output strictly valid JSON with keys:
     "branch_1_givens": "string",
     "branch_2_interim": "string",
     "branch_3_target": "string"
-  },
-  "graph_nodes": [
-    {
-      "id": "N1_PREMISE",
-      "type": "SOUND_PREMISE",
-      "label": "Branch 1: Givens & Inputs",
-      "mathLatex": "...",
-      "description": "...",
-      "badge": "SOUND PREMISE",
-      "audioScriptIndic": "..."
-    },
-    {
-      "id": "N2_PIVOT",
-      "type": "CRITICAL_PIVOT",
-      "label": "Root: Governing Physical Law",
-      "mathLatex": "...",
-      "description": "...",
-      "badge": "CRITICAL PIVOT",
-      "audioScriptIndic": "..."
-    },
-    {
-      "id": "N3_DERAILED",
-      "type": "DERAILED_BRANCH",
-      "label": "Derailed Intuition",
-      "mathLatex": "...",
-      "description": "...",
-      "badge": "DERAILED BRANCH",
-      "audioScriptIndic": "..."
-    },
-    {
-      "id": "N4_CONTRADICTION",
-      "type": "DERAILED_BRANCH",
-      "label": "Option Inconsistency",
-      "mathLatex": "...",
-      "description": "...",
-      "badge": "CONTRADICTION",
-      "audioScriptIndic": "..."
-    },
-    {
-      "id": "N5_CANONICAL",
-      "type": "CANONICAL_PATH",
-      "label": "Branch 2: Interim Formulas",
-      "mathLatex": "...",
-      "description": "...",
-      "badge": "CANONICAL PATH",
-      "audioScriptIndic": "..."
-    },
-    {
-      "id": "N6_SOCRATIC",
-      "type": "SOCRATIC_CHECKPOINT",
-      "label": "Branch 3: Target State",
-      "mathLatex": "...",
-      "description": "...",
-      "badge": "SOCRATIC CHECKPOINT",
-      "audioScriptIndic": "..."
-    }
-  ]
+  }
 }`;
 
     const controller = new AbortController();
@@ -241,7 +175,7 @@ Output strictly valid JSON with keys:
           { role: 'user', content: prompt },
         ],
         temperature: 0.1,
-        max_tokens: 2200,
+        max_tokens: 3500,
       }),
       signal: controller.signal,
     });
@@ -257,18 +191,39 @@ Output strictly valid JSON with keys:
     let content = data.choices?.[0]?.message?.content?.trim();
     if (!content) return null;
 
-    // Strip code fences if present
-    content = content.replace(/^```[a-z]*\s*/i, '').replace(/```$/i, '').trim();
+    // Robust LLM JSON Cleaner and Parser (handles markdown, trailing commas, and unescaped LaTeX backslashes)
+    const parseLlmJson = (raw: string): any => {
+      let text = raw.replace(/^```[a-z]*\s*/i, '').replace(/```$/i, '').trim();
+      const firstBrace = text.indexOf('{');
+      const lastBrace = text.lastIndexOf('}');
+      if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+        throw new Error('No JSON object delimiters found');
+      }
+      let jsonStr = text.slice(firstBrace, lastBrace + 1);
 
-    // Find JSON boundaries
-    const firstBrace = content.indexOf('{');
-    const lastBrace = content.lastIndexOf('}');
-    if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+      // Attempt 1: Direct JSON.parse
+      try {
+        return JSON.parse(jsonStr);
+      } catch (e1) {
+        // Attempt 2: Strip trailing commas before } or ]
+        jsonStr = jsonStr.replace(/,(\s*[}\]])/g, '$1');
+        try {
+          return JSON.parse(jsonStr);
+        } catch (e2) {
+          // Attempt 3: Escape single backslashes in LaTeX equations
+          const sanitized = jsonStr.replace(/\\([^"\\/bfnrtu])/g, '\\\\$1');
+          return JSON.parse(sanitized);
+        }
+      }
+    };
+
+    let parsed: any = null;
+    try {
+      parsed = parseLlmJson(content);
+    } catch (parseErr) {
+      console.warn('Failed to parse dynamic LLM JSON response:', parseErr, content.slice(0, 300));
       return null;
     }
-
-    const jsonStr = content.slice(firstBrace, lastBrace + 1);
-    const parsed = JSON.parse(jsonStr);
 
     // Normalize board steps (handling zone_a_board_steps or board_steps, strings or objects)
     const rawBoardSteps = Array.isArray(parsed.zone_a_board_steps)
@@ -379,7 +334,7 @@ Output strictly valid JSON with keys:
       { id: 'e5', source: 'N5_CANONICAL', target: 'N6_SOCRATIC', label: 'Verified Solution', status: 'valid', animated: false },
     ];
 
-    if (boardSteps.length >= 3) {
+    if (boardSteps.length >= 2) {
       return {
         domainId: parsed.domain_id || 'dynamic_solved',
         domainName: parsed.domain_name || 'Academic Reasoning & STEM Derivation',
@@ -1664,17 +1619,43 @@ export function diagnoseDoubtSemantic(
 ): DiagnosisResult {
   const domain = customDomain || detectUniversalDomain(doubt, studentSteps, studentBreakdown);
 
-  // Multilingual Spoken Script Generation (Detailed Masterclass Pedagogical Narration)
-  let narrationScript = domain.narrationScript || '';
+  // 1. Synthesize problem-specific masterclass narration from authentic board steps
+  const boardDerivationNarration = (domain.boardSteps || [])
+    .map((s) => s.speechScript?.trim() || `${s.title}: ${s.latexContent}`)
+    .filter(Boolean)
+    .join(' ');
+
+  let narrationScript = domain.narrationScript || boardDerivationNarration;
   if (!narrationScript) {
     if (outputLangName.includes('Hindi') || outputLangName.includes('हिंदी')) {
-      narrationScript = `नमस्ते! आइए आपके इस प्रश्न को गहराई से समझें। प्रारंभिक चरण में आपकी समस्या की पहचान और प्रारंभिक शर्तें बिल्कुल सही थीं। परंतु दूसरे चरण पर आपका तर्क विचलित हो गया: ${domain.derailmentReason}। यहाँ मुख्य वैचारिक भ्रांति यह है: ${domain.rootMisconception}। ${domain.domainName} में यह अनिवार्य है कि हम आधारभूत नियम '${domain.canonicalConcept}' को लागू करें। यदि इस नियम की अनदेखी की जाए, तो पूरा समाधान अमान्य हो जाता है। समाधान के लिए ब्लैकबोर्ड पर दिए गए पिवट नोड को देखें: पहले बुनियादी संरक्षण नियम लागू करें, फिर अंतिम समाधान तक पहुँचें। अब आप विचार करें: ${domain.socraticPrompt}। अपना उत्तर नीचे दिए गए बॉक्स में अवश्य लिखें!`;
+      narrationScript = `नमस्ते! आइए आपके इस प्रश्न को गहराई से समझें। प्रारंभिक चरण में आपकी समस्या की पहचान और प्रारंभिक शर्तें बिल्कुल सही थीं। परंतु दूसरे चरण पर आपका तर्क विचलित हो गया: ${domain.derailmentReason}। यहाँ मुख्य वैचारिक भ्रांति यह है: ${domain.rootMisconception}। ${domain.domainName} में यह अनिवार्य है कि हम आधारभूत नियम '${domain.canonicalConcept}' को लागू करें। यदि इस नियम की अनदेखी की जाए, तो पूरा समाधान अमान्य हो जाता है। समाधान के लिए ब्लैकबोर्ड पर दिए गए पिवट नोड को देखें: पहले बुनियादी संरक्षण नियम लागू करें, फिर अंतिम समाधान तक पहुँचें। अब आप विचार करें: ${domain.socraticPrompt}।`;
     } else if (outputLangName.includes('Hinglish') || outputLangName.includes('हिंग्लिश')) {
-      narrationScript = `Hello! Aaiye aapke is doubt ko step-by-step detail mein samajhte hain. Shuruat mein aapka problem setup aur starting premise bilkul sound tha. Lekin Step 2 par aate hi aapka reasoning derail hua: ${domain.derailmentReason}. Yahan par root misconception yeh hai: ${domain.rootMisconception}. Dhyan rahe ki ${domain.domainName} mein localized intuition apply karne ke bajaye governing invariant ${domain.canonicalConcept} ko strictly follow karna zaroori hai. Agar is invariant ko neglect karenge, to contradictory result aayega. Blackboard par green Pivot Node ko dekhiye jahan canonical first principles ko restore kiya gaya hai. Ab aap khud reflect karein: ${domain.hinglishPrompt || domain.socraticPrompt}. Niche reflection box mein apna jawab zaroor submit karein!`;
+      narrationScript = `Hello! Aaiye aapke is doubt ko step-by-step detail mein samajhte hain. Shuruat mein aapka problem setup aur starting premise bilkul sound tha. Lekin Step 2 par aate hi aapka reasoning derail hua: ${domain.derailmentReason}. Yahan par root misconception yeh hai: ${domain.rootMisconception}. Dhyan rahe ki ${domain.domainName} mein localized intuition apply karne ke bajaye governing invariant ${domain.canonicalConcept} ko strictly follow karna zaroori hai. Blackboard par green Pivot Node ko dekhiye jahan canonical first principles ko restore kiya gaya hai. Ab aap khud reflect karein: ${domain.hinglishPrompt || domain.socraticPrompt}.`;
     } else {
-      narrationScript = `Welcome! Let us examine your problem and reasoning step-by-step in detail. In the first step, your starting premise and problem formulation were completely sound. However, at Step 2, your derivation experienced a critical divergence: ${domain.derailmentReason}. The underlying conceptual misconception here is: ${domain.rootMisconception}. In ${domain.domainName}, you must strictly enforce the governing principle: ${domain.canonicalConcept}. If you omit this invariant, the system reaches an empirical contradiction. To resolve this, look at the Pivot Node on the digital chalkboard where we restore the fundamental invariant first, then verify the boundary conditions. Now reflect on this: ${domain.socraticPrompt}. Type or dictate your self-correction in the box below!`;
+      narrationScript = `Welcome! Let us examine your problem and reasoning step-by-step in detail. In the first step, your starting premise and problem formulation were completely sound. However, at Step 2, your derivation experienced a critical divergence: ${domain.derailmentReason}. The underlying conceptual misconception here is: ${domain.rootMisconception}. In ${domain.domainName}, you must strictly enforce the governing principle: ${domain.canonicalConcept}. To resolve this, look at the Pivot Node on the digital chalkboard where we restore the fundamental invariant first. Now reflect on this: ${domain.socraticPrompt}.`;
     }
   }
+
+  // 2. Build dynamic synchronized audio timeline matching board steps
+  let currentTimeCursor = 0.0;
+  const dynamicTimeline = (domain.boardSteps || []).map((step, idx) => {
+    const textLen = (step.speechScript || step.title).length;
+    const dur = Math.max(4.5, Math.min(14.0, parseFloat((textLen / 16).toFixed(1))));
+    const startTime = parseFloat(currentTimeCursor.toFixed(1));
+    const endTime = parseFloat((currentTimeCursor + dur).toFixed(1));
+    currentTimeCursor = endTime;
+
+    return {
+      step_id: idx + 1,
+      speech_segment: step.speechScript || step.title,
+      start_time: startTime,
+      end_time: endTime,
+      duration: dur,
+      board_action: idx === 1 ? 'CROSS_OUT' : idx === 2 ? 'DRAW_ARROW' : 'WRITE',
+      color: step.chalkColor === 'amber' ? '#F59E0B' : step.chalkColor === 'cyan' ? '#06B6D4' : step.chalkColor === 'violet' ? '#8B5CF6' : '#10B981',
+      content: step.title,
+    };
+  });
 
   const rawSteps = studentSteps.split('\n').filter((s) => s.trim().length > 0);
   const n0 = domain.graphNodes?.[0];
@@ -1703,7 +1684,7 @@ export function diagnoseDoubtSemantic(
     derailment_reason: domain.derailmentReason,
     socratic_challenge: domain.socraticPrompt,
     full_spoken_transcript: narrationScript,
-    synchronized_timeline: [
+    synchronized_timeline: dynamicTimeline.length > 0 ? dynamicTimeline : [
       { step_id: 1, speech_segment: 'Let us examine your initial formulation: your baseline setup was completely sound.', start_time: 0.0, end_time: 7.0, duration: 7.0, board_action: 'WRITE', color: '#10B981', content: 'Sound Premise' },
       { step_id: 2, speech_segment: `Notice carefully: at Step 2 your derivation derailed: ${domain.derailmentReason}.`, start_time: 7.0, end_time: 16.0, duration: 9.0, board_action: 'CROSS_OUT', color: '#EF4444', content: 'Critical Divergence' },
       { step_id: 3, speech_segment: `Branch down to the governing invariant at the Pivot Node: ${domain.canonicalConcept}.`, start_time: 16.0, end_time: 25.0, duration: 9.0, board_action: 'DRAW_ARROW', color: '#06B6D4', content: 'Canonical Invariant' },
@@ -2023,7 +2004,7 @@ export function prepareGraphPayload(diagnosis: DiagnosisResult): GraphPayload {
     nodes: positionedNodes,
     connectors: connectors,
     timeline: timeline,
-    total_duration: 35.0,
+    total_duration: timeline.length > 0 ? timeline[timeline.length - 1].end_time : 35.0,
   };
 }
 
