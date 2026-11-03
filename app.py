@@ -94,9 +94,9 @@ CUSTOM_CSS = """
 
     /* Responsive Main Block Container */
     [data-testid="stMainBlockContainer"], section.main .block-container {
-        padding-top: 1.6rem !important;
-        padding-bottom: 5rem !important;
-        max-width: 1280px !important;
+        padding-top: 1.2rem !important;
+        padding-bottom: 4rem !important;
+        max-width: 1540px !important;
     }
 
     /* Sleek Custom Scrollbars */
@@ -113,6 +113,71 @@ CUSTOM_CSS = """
     }
     ::-webkit-scrollbar-thumb:hover {
         background: #94a3b8;
+    }
+
+    /* 2-Column Split Studio Components */
+    .console-card {
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 1.15rem 1.3rem;
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+        margin-bottom: 0.9rem;
+    }
+    .console-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.55rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .console-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .counter-chip {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.72rem;
+        color: #64748b;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        padding: 2px 7px;
+        border-radius: 999px;
+        font-weight: 600;
+    }
+    .hud-mastery-bar {
+        background: linear-gradient(90deg, #090d16 0%, #151d2e 100%);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        padding: 0.65rem 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 0.65rem;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    }
+    .mastery-status-badge {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .socratic-reply-card {
+        background: #ffffff;
+        border: 1.5px solid #a78bfa;
+        border-radius: 14px;
+        padding: 1.15rem 1.35rem;
+        margin-top: 0.85rem;
+        box-shadow: 0 8px 24px -4px rgba(139, 92, 246, 0.15);
     }
 
     /* =========================================================
@@ -926,15 +991,14 @@ st.markdown(
 )
 
 # ---------------------------------------------------------
-# 1-Click Multi-Domain Demos
+# Dynamic Pedagogical Studio: 2-Column Split Architecture
+# Left: 36% "Reasoning Input Console"
+# Right: 64% "The Interactive Blackboard Studio"
 # ---------------------------------------------------------
-st.markdown("<div class='presets-section-title'>⚡ Curated Multi-Domain Demos (1-Click Load):</div>", unsafe_allow_html=True)
-demo_cols = st.columns(6)
 
-def load_sample(key: str):
+def load_sample(key: str, auto_diagnose: bool = True):
     import importlib
     import sample_doubts
-    # Bust stale module cache if key missing (common after Streamlit hot-reloads on Cloud)
     if key not in sample_doubts.SAMPLE_DOUBTS:
         importlib.reload(sample_doubts)
         global SAMPLE_DOUBTS
@@ -942,7 +1006,7 @@ def load_sample(key: str):
 
     s = sample_doubts.SAMPLE_DOUBTS.get(key)
     if not s:
-        st.warning(f"⚠️ Demo doubt '{key}' could not be loaded. If you recently updated the app, please reboot the app via Streamlit Cloud menu ('Manage app' ➔ ⋮ ➔ 'Reboot app').")
+        st.warning(f"⚠️ Demo doubt '{key}' could not be loaded. Please reboot app in Streamlit Cloud menu.")
         return
 
     is_hi = ("Hindi" in input_lang_name or "हिंदी" in input_lang_name) and ("Hinglish" not in input_lang_name and "हिंग्लिश" not in input_lang_name)
@@ -950,61 +1014,56 @@ def load_sample(key: str):
     st.session_state.form_concept = s.get("student_concept_hi") if (is_hi and s.get("student_concept_hi")) else s.get("student_concept", "")
     st.session_state.form_steps = s.get("student_steps_hi") if (is_hi and s.get("student_steps_hi")) else s.get("student_steps", "")
     st.session_state.form_breakdown = s.get("student_breakdown_hi") if (is_hi and s.get("student_breakdown_hi")) else s.get("student_breakdown", "")
-    st.session_state.diagnosis_result = None
-    st.session_state.audio_bytes = None
+    st.session_state.active_case_key = key
     st.session_state.socratic_response_msg = None
     st.session_state.socratic_solved = False
 
-with demo_cols[0]:
-    if st.button("⚖️ Law & Civics", use_container_width=True, help="Freedom of Speech & Public Order (Art 19)"):
-        load_sample("law_freedom_of_speech")
-        st.rerun()
+    if auto_diagnose:
+        pedagogical_context = learner_model.build_pedagogical_context(profile)
+        diag = pedagogy_engine.diagnose_doubt_semantic(
+            doubt=st.session_state.form_doubt,
+            student_concept=st.session_state.form_concept,
+            student_steps=st.session_state.form_steps,
+            student_breakdown=st.session_state.form_breakdown,
+            learner_context=pedagogical_context,
+            preferred_language=lang_code,
+            student_name=profile.get("student_name", "Arjun"),
+            output_lang_name=output_lang_name
+        )
+        st.session_state.diagnosis_result = diag
 
-with demo_cols[1]:
-    if st.button("📉 Economics", use_container_width=True, help="Rent Control & Supply Elasticity Deadweight Loss"):
-        load_sample("economics_rent_control")
-        st.rerun()
-
-with demo_cols[2]:
-    if st.button("📜 History", use_container_width=True, help="Origins of WWI: Trigger vs Structural M-A-I-N Causes"):
-        load_sample("history_ww1_causality")
-        st.rerun()
-
-with demo_cols[3]:
-    if st.button("📖 Literature", use_container_width=True, help="Shakespeare's Macbeth: Fatal Flaw (Hamartia) vs Fate"):
-        load_sample("literature_macbeth_tragic_flaw")
-        st.rerun()
-
-with demo_cols[4]:
-    if st.button("💻 Coding", use_container_width=True, help="Balanced Parentheses & Stack Invariant"):
-        load_sample("coding_balanced_parentheses")
-        st.rerun()
-
-with demo_cols[5]:
-    if st.button("🏔️ Physics", use_container_width=True, help="Work-Energy & Friction Dissipation"):
-        load_sample("spring_friction_energy")
-        st.rerun()
-
-st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)
+        spoken_script = diag.get("board_storyboard", {}).get("full_spoken_transcript") or diag.get("narration_script", "")
+        audio_bytes, audio_msg, is_real = sarvam_tts.synthesize_speech_sarvam(
+            text=spoken_script,
+            target_language_code=lang_code,
+            speaker=speaker,
+            model=tts_model,
+            api_key=sarvam_key
+        )
+        st.session_state.audio_bytes = audio_bytes
+        st.session_state.audio_status_msg = audio_msg
 
 
-# ---------------------------------------------------------
-# STAGE 1: Socratic Elicitation (No Direct Answers Guardrail)
-# ---------------------------------------------------------
+# Initialize default preset if empty so blackboard is alive on first visit
+if "form_doubt" not in st.session_state or not st.session_state.form_doubt:
+    load_sample("coding_balanced_parentheses", auto_diagnose=True)
+elif st.session_state.diagnosis_result is None:
+    load_sample(st.session_state.get("active_case_key", "coding_balanced_parentheses"), auto_diagnose=True)
+
+
+# Multilingual Labels & Placeholders
 is_input_pure_hindi = ("Hindi" in input_lang_name or "हिंदी" in input_lang_name) and ("Hinglish" not in input_lang_name and "हिंग्लिश" not in input_lang_name)
 is_input_hinglish = ("Hinglish" in input_lang_name or "हिंग्लिश" in input_lang_name)
 
 if is_input_pure_hindi:
     lbl_doubt = "1. समस्या या अकादमिक संशय का विवरण (हिंदी):"
     ph_doubt = "यहाँ किसी भी विषय (विधि, अर्थशास्त्र, इतिहास, साहित्य, कोडिंग, विज्ञान) का संशय दर्ज करें..."
-    lbl_concept = "2. लागू होने वाला सिद्धांत / नियम / अवधारणा (हिंदी):"
+    lbl_concept = "2. लागू होने वाला सिद्धांत / नियम (हिंदी):"
     ph_concept = "उदा. अनुच्छेद 19(2), मूल्य सीमा, M-A-I-N कारणता, हमारशिया, स्टैक, यांत्रिक ऊर्जा"
     lbl_breakdown = "4. आपके अनुसार तर्क कहाँ अटक रहा है? (हिंदी):"
     ph_breakdown = "उदा. निष्कर्ष गलत आ रहा है, या सीमांत शर्त समझ नहीं आ रही..."
     lbl_steps = "3. आपका चरणबद्ध तर्क / हल करने का प्रयास (हिंदी):"
     ph_steps = "चरण 1: ...\nचरण 2: ...\nचरण 3: ..."
-    guardrail_badge = "चरण 01 • सक्रिय अन्वेषण"
-    guardrail_msg = "सक्रिय पुनरुत्थान: सीधे उत्तर देने के बजाय आपकी सोच के सटीक विचलन बिंदु की पहचान की जाएगी।"
 elif is_input_hinglish:
     lbl_doubt = "1. Problem Statement / Academic Doubt (हिंग्लिश):"
     ph_doubt = "Apna academic question ya doubt yahan enter karein (Law, Econ, History, Lit, CS, Science)..."
@@ -1014,8 +1073,6 @@ elif is_input_hinglish:
     ph_breakdown = "e.g. Conclusion contradict ho raha hai, ya boundary condition clear nahi hai..."
     lbl_steps = "3. Aapka Step-by-Step Logic / Attempted Derivation (हिंग्लिश):"
     ph_steps = "Step 1: ...\nStep 2: ...\nStep 3: ..."
-    guardrail_badge = "Stage 01 • Active Elicitation"
-    guardrail_msg = "Active Retrieval: Isolating your exact cognitive derailment node without direct answer leakage."
 else:
     lbl_doubt = f"1. Problem Statement or Academic Doubt ({input_lang_name}):"
     ph_doubt = "Enter your question or doubt here (Law, Economics, History, Literature, CS, Science)..."
@@ -1025,63 +1082,148 @@ else:
     ph_breakdown = "e.g. The conclusion contradicts assumptions, or boundary conditions fail..."
     lbl_steps = f"3. Your Step-by-Step Logic / Attempted Derivation So Far ({input_lang_name}):"
     ph_steps = "Step 1: ...\nStep 2: ...\nStep 3: ..."
-    guardrail_badge = "Stage 01 • Active Elicitation"
-    guardrail_msg = "Active Retrieval: Isolating your exact cognitive derailment node without direct answer leakage."
 
-st.markdown(
-    f"""
-    <div class="saas-card">
-        <div class="saas-card-header">
-            <div>
-                <div class="saas-card-title">
-                    <span>📝 Stage 1: Problem Articulation & Mental Model</span>
+
+# ---------------------------------------------------------
+# 2-COLUMN SPLIT STUDIO LAYOUT
+# ---------------------------------------------------------
+col_console, col_blackboard = st.columns([36, 64], gap="medium")
+
+# =========================================================
+# LEFT PANEL (36%): Reasoning Input Console
+# =========================================================
+with col_console:
+    st.markdown("<div class='presets-section-title'>⚡ 1-Click Case Studies (Pill Carousel):</div>", unsafe_allow_html=True)
+    c_p1, c_p2, c_p3 = st.columns(3)
+    with c_p1:
+        if st.button("⚖️ Law (Art 19)", use_container_width=True, help="Freedom of Speech & Public Order (Art 19)"):
+            load_sample("law_freedom_of_speech", auto_diagnose=True)
+            st.rerun()
+    with c_p2:
+        if st.button("📉 Economics", use_container_width=True, help="Rent Control & Supply Elasticity Deadweight Loss"):
+            load_sample("economics_rent_control", auto_diagnose=True)
+            st.rerun()
+    with c_p3:
+        if st.button("📜 History", use_container_width=True, help="Origins of WWI: Trigger vs Structural M-A-I-N Causes"):
+            load_sample("history_ww1_causality", auto_diagnose=True)
+            st.rerun()
+
+    c_p4, c_p5, c_p6 = st.columns(3)
+    with c_p4:
+        if st.button("📖 Literature", use_container_width=True, help="Shakespeare's Macbeth: Fatal Flaw (Hamartia) vs Fate"):
+            load_sample("literature_macbeth_tragic_flaw", auto_diagnose=True)
+            st.rerun()
+    with c_p5:
+        if st.button("💻 Coding", use_container_width=True, help="Balanced Parentheses & Stack Invariant"):
+            load_sample("coding_balanced_parentheses", auto_diagnose=True)
+            st.rerun()
+    with c_p6:
+        if st.button("🏔️ Physics", use_container_width=True, help="Work-Energy & Friction Dissipation"):
+            load_sample("spring_friction_energy", auto_diagnose=True)
+            st.rerun()
+
+    st.markdown("<div style='margin-bottom:0.6rem;'></div>", unsafe_allow_html=True)
+
+    # Quick-tag selector for Concept Domain
+    active_key = st.session_state.get("active_case_key", "coding_balanced_parentheses")
+    default_tag_idx = 0
+    if "law" in active_key:
+        default_tag_idx = 1
+    elif "economics" in active_key:
+        default_tag_idx = 2
+    elif "history" in active_key:
+        default_tag_idx = 4
+    elif "literature" in active_key:
+        default_tag_idx = 5
+    elif "spring" in active_key or "physics" in active_key:
+        default_tag_idx = 3
+
+    domain_tag = st.selectbox(
+        "Concept Domain Quick-Tags:",
+        options=[
+            "💻 Computer Science & Algorithms",
+            "⚖️ Constitutional Law & Civics",
+            "📉 Microeconomics & Markets",
+            "🏔️ Classical Mechanics & Physics",
+            "📜 Modern World History",
+            "📖 Classical Literature & Drama",
+            "✏️ Custom Academic Field"
+        ],
+        index=default_tag_idx,
+        help="Select or switch domains to adjust pedagogical guidance."
+    )
+
+    # Live character & step counts
+    char_count = len(st.session_state.get("form_doubt", ""))
+    token_est = max(1, char_count // 4)
+    raw_step_lines = [s for s in st.session_state.get("form_steps", "").split("\n") if s.strip()]
+    step_count = len(raw_step_lines)
+
+    # Floating Card: Reasoning Input Console
+    st.markdown(
+        f"""
+        <div class="console-card">
+            <div class="console-header">
+                <div class="console-title">
+                    <span>📝 Reasoning Input Console</span>
                 </div>
-                <div style="font-size:0.8rem; color:#64748b; margin-top:0.25rem;">
-                    {guardrail_msg}
+                <div style="display:flex; gap:6px;">
+                    <span class="counter-chip">{char_count} chars • ~{token_est} tokens</span>
+                    <span class="counter-chip">{step_count} steps</span>
                 </div>
             </div>
-            <span class="step-badge">{guardrail_badge}</span>
-        </div>
-    """,
-    unsafe_allow_html=True
-)
-
-doubt_input = st.text_area(
-    lbl_doubt,
-    value=st.session_state.form_doubt,
-    height=85,
-    placeholder=ph_doubt
-)
-
-col_e1, col_e2 = st.columns(2)
-with col_e1:
-    concept_input = st.text_input(
-        lbl_concept,
-        value=st.session_state.form_concept,
-        placeholder=ph_concept
-    )
-with col_e2:
-    breakdown_input = st.text_input(
-        lbl_breakdown,
-        value=st.session_state.form_breakdown,
-        placeholder=ph_breakdown
+            <div style="font-size:0.77rem; color:#64748b; margin-bottom:0.85rem; line-height:1.4;">
+                Active Elicitation: Enter your derivation steps. The Socratic engine detects the exact cognitive pivot without revealing direct answers.
+            </div>
+        """,
+        unsafe_allow_html=True
     )
 
-steps_input = st.text_area(
-    lbl_steps,
-    value=st.session_state.form_steps,
-    height=105,
-    placeholder=ph_steps
-)
+    doubt_input = st.text_area(
+        lbl_doubt,
+        value=st.session_state.get("form_doubt", ""),
+        height=85,
+        placeholder=ph_doubt
+    )
 
-diagnose_btn = st.button(
-    f"🔍 Diagnose Reasoning & Generate Dual Maps ({output_lang_name})",
-    type="primary",
-    use_container_width=True
-)
+    c_f1, c_f2 = st.columns(2)
+    with c_f1:
+        concept_input = st.text_input(
+            lbl_concept,
+            value=st.session_state.get("form_concept", ""),
+            placeholder=ph_concept
+        )
+    with c_f2:
+        breakdown_input = st.text_input(
+            lbl_breakdown,
+            value=st.session_state.get("form_breakdown", ""),
+            placeholder=ph_breakdown
+        )
 
-st.markdown("</div>", unsafe_allow_html=True)
+    steps_input = st.text_area(
+        lbl_steps,
+        value=st.session_state.get("form_steps", ""),
+        height=105,
+        placeholder=ph_steps
+    )
 
+    diagnose_btn = st.button(
+        f"🔍 Analyze Reasoning & Launch Blackboard ({output_lang_name})",
+        type="primary",
+        use_container_width=True
+    )
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Longitudinal Learner Profile Summary Card
+    with st.expander(f"👤 Longitudinal Learner Profile: {profile.get('student_name', 'Arjun Sharma')}", expanded=False):
+        st.markdown(f"**Pedagogical Trajectory:** {profile.get('pedagogical_trajectory', '')}")
+        st.markdown(f"**Logged Misconceptions:** {len(profile.get('error_history', []))} records")
+        for err in profile.get("error_history", [])[-3:]:
+            status_dot = "🟢 Resolved" if err.get("resolved") else "🔴 Fragile"
+            st.caption(f"{status_dot} • **{err.get('concept')}**: {err.get('type')}")
+
+# Handle Analysis Submit
 if diagnose_btn:
     if not doubt_input.strip() or not steps_input.strip():
         st.error("Please provide both the problem statement and your attempted step-by-step reasoning so we can diagnose your mental path!")
@@ -1093,7 +1235,6 @@ if diagnose_btn:
             st.session_state.form_breakdown = breakdown_input
 
             pedagogical_context = learner_model.build_pedagogical_context(profile)
-
             diagnosis = pedagogy_engine.diagnose_doubt_semantic(
                 doubt=doubt_input,
                 student_concept=concept_input,
@@ -1101,7 +1242,7 @@ if diagnose_btn:
                 student_breakdown=breakdown_input,
                 learner_context=pedagogical_context,
                 preferred_language=lang_code,
-                student_name=profile.get("student_name", "Learner"),
+                student_name=profile.get("student_name", "Arjun"),
                 output_lang_name=output_lang_name
             )
 
@@ -1139,92 +1280,41 @@ if diagnose_btn:
             st.rerun()
 
 
-# ---------------------------------------------------------
-# STAGE 2: Diagnosis & Comparative Thought Map Visualizer
-# ---------------------------------------------------------
-if st.session_state.diagnosis_result:
+# =========================================================
+# RIGHT PANEL (64%): The Interactive Blackboard Studio
+# =========================================================
+with col_blackboard:
     diag = st.session_state.diagnosis_result
+    if diag:
+        # Calculate validity percentage
+        derailment_step = int(diag.get("derailment_step", 2))
+        s_nodes = diag.get("student_nodes", [])
+        total_steps = max(len(s_nodes), derailment_step, 2)
+        valid_pct = int(round(((derailment_step - 1) / total_steps) * 100))
+        valid_pct = max(35, min(valid_pct, 85))
+        canonical_topic = diag.get("canonical_concept", "Academic Principle")
 
-    st.markdown(
-        f"""
-        <div class="saas-card">
-            <div class="saas-card-header">
-                <div class="saas-card-title">
-                    <span>🗺️ Stage 2: Mental Model Diagnosis & Comparative Flow Maps</span>
-                </div>
-                <span class="step-badge">Stage 02 • Visual Remediation ({output_lang_name})</span>
-            </div>
-        """,
-        unsafe_allow_html=True
-    )
+        # Floating HUD over the canvas
+        hud_badge_text = f"🎯 {canonical_topic}: {valid_pct}% Valid, 1 Divergence at Step {derailment_step}"
 
-    # Diagnostic Summary Bento Box
-    col_d1, col_d2 = st.columns([3, 2])
-    with col_d1:
         st.markdown(
             f"""
-            <div class="derailment-banner">
-                <div class="derailment-title">
-                    <span>⚠️ Cognitive Derailment Point: Step {diag.get('derailment_step', 2)}</span>
+            <div class="hud-mastery-bar">
+                <div class="mastery-status-badge">
+                    <span>{hud_badge_text}</span>
                 </div>
-                <div class="derailment-concept">
-                    Root Misconception: {diag.get('canonical_root_misconception')}
-                </div>
-                <div class="derailment-desc">
-                    {diag.get('derailment_reason')}
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:0.72rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em;">Language:</span>
+                    <span class="bridge-chip" style="font-size:0.75rem;">{output_lang_name}</span>
                 </div>
             </div>
             """,
             unsafe_allow_html=True
         )
-    with col_d2:
-        past_errors = profile.get("error_history", [])
-        same_concept_errors = [e for e in past_errors[:-1] if e.get("concept") == diag.get("canonical_concept")]
-        if same_concept_errors:
-            prior_detail = same_concept_errors[-1].get("details", "")
-            st.markdown(
-                f"""
-                <div class="longitudinal-banner">
-                    <div style="font-weight:700; display:flex; align-items:center; gap:0.4rem; margin-bottom:0.35rem;">
-                        <span>🧠 Longitudinal Memory Cross-Reference:</span>
-                    </div>
-                    <div>
-                        "Notice how in your previous session on '{same_concept_errors[-1].get('problem_topic', 'this topic')}', you also encountered: {prior_detail[:110]}."
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-        else:
-            st.markdown(
-                f"""
-                <div class="remediation-banner">
-                    <div style="font-weight:700; color:#065f46; font-size:1.05rem; display:flex; align-items:center; gap:0.4rem;">
-                        <span>💡 Canonical Scaffolded Concept</span>
-                    </div>
-                    <div style="font-weight:600; color:#047857; margin-top:0.35rem; font-size:0.95rem;">
-                        {diag.get('canonical_concept')}
-                    </div>
-                    <div style="color:#064e3b; margin-top:0.35rem; font-size:0.9rem; line-height:1.45;">
-                        The breakthrough requires pivoting from superficial heuristics to foundational principles and constraints.
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
 
-    # Segmented Tabbed Visualization
-    map_tabs = st.tabs([
-        "🧑‍🏫 Live Classroom Blackboard",
-        "📊 Comparative View",
-        "🔴 Student Path (Map A)",
-        "🟢 Remediated Path (Map B)"
-    ])
-
-    with map_tabs[0]:
+        # Ensure board storyboard exists
         storyboard = diag.get("board_storyboard")
         if not storyboard:
-            # Generate storyboard instantaneously (0.03ms) so there is zero delay
             storyboard = pedagogy_engine.generate_live_board_storyboard(
                 diag,
                 doubt=st.session_state.get("form_doubt", ""),
@@ -1234,211 +1324,103 @@ if st.session_state.diagnosis_result:
             )
             diag["board_storyboard"] = storyboard
 
-        blackboard_component.render_live_blackboard(
-            storyboard=storyboard,
-            audio_bytes=st.session_state.audio_bytes
+        # Prepare Graph Payload with Excalidraw / Miro Layout
+        graph_payload = blackboard_component.prepare_graph_payload_from_storyboard(storyboard, diag)
+
+        # Prepare audio base64
+        audio_b64 = ""
+        if st.session_state.audio_bytes and len(st.session_state.audio_bytes) > 44:
+            audio_b64 = base64.b64encode(st.session_state.audio_bytes).decode("ascii")
+
+        # -----------------------------------------------------
+        # THE DYNAMIC BLACKBOARD CANVAS
+        # -----------------------------------------------------
+        blackboard_component.render_interactive_board(
+            graph_payload=graph_payload,
+            audio_base64=audio_b64,
+            target_lang=output_lang_name,
+            height=560
         )
 
-    with map_tabs[1]:
-        try:
-            st.graphviz_chart(diag["dot_comparative"], use_container_width=True)
-        except Exception as e:
-            st.error(f"Graphviz render error: {str(e)}")
-
-    with map_tabs[2]:
-        col_ga, col_ta = st.columns([3, 2])
-        with col_ga:
-            st.graphviz_chart(diag["dot_map_a"], use_container_width=True)
-        with col_ta:
-            st.markdown("<div style='font-size:0.85rem; font-weight:700; color:#475569; margin-bottom:0.5rem;'>Student Reasoning Path:</div>", unsafe_allow_html=True)
-            for n in diag.get("student_nodes", []):
-                badge_html = "<span class='badge-pill badge-coral'>Derailment</span>" if n.get("is_error") else "<span class='badge-pill badge-blue'>Premise</span>"
-                detail_html = f"<div class='node-card-detail'>↳ {n['detail']}</div>" if n.get("detail") else ""
-                st.markdown(
-                    f"""
-                    <div class="node-card">
-                        <div class="node-card-header">
-                            <span>Node {n.get('id')}: {n.get('label')}</span>
-                            {badge_html}
-                        </div>
-                        {detail_html}
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-    with map_tabs[3]:
-        col_gb, col_tb = st.columns([3, 2])
-        with col_gb:
-            st.graphviz_chart(diag["dot_map_b"], use_container_width=True)
-        with col_tb:
-            st.markdown("<div style='font-size:0.85rem; font-weight:700; color:#475569; margin-bottom:0.5rem;'>Canonical Scaffold Steps:</div>", unsafe_allow_html=True)
-            for n in diag.get("remediation_nodes", []):
-                badge_html = "<span class='badge-pill badge-green'>Critical Pivot</span>" if n.get("is_pivot") else "<span class='badge-pill badge-blue'>Canonical</span>"
-                detail_html = f"<div class='node-card-detail'>★ {n['detail']}</div>" if n.get("detail") else ""
-                st.markdown(
-                    f"""
-                    <div class="node-card">
-                        <div class="node-card-header">
-                            <span>Step {n.get('id')}: {n.get('label')}</span>
-                            {badge_html}
-                        </div>
-                        {detail_html}
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-    # ---------------------------------------------------------
-    # STAGE 3: Sarvam AI Multilingual Audio & Socratic Guidance
-    # ---------------------------------------------------------
-    st.markdown(
-        f"""
-        <div class="saas-card">
-            <div class="saas-card-header">
-                <div class="saas-card-title">
-                    <span>🎙️ Stage 3: Voice Walkthrough & Socratic Checkpoint</span>
-                </div>
-                <span class="step-badge">Stage 03 • Remediation ({output_lang_name})</span>
-            </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    audio_col1, audio_col2 = st.columns([2, 3])
-    with audio_col1:
+        # -----------------------------------------------------
+        # INTEGRATED SOCRATIC REPLY BAR (Directly beneath canvas)
+        # -----------------------------------------------------
+        socratic_challenge = diag.get("socratic_prompt", "Apply the core governing constraint.")
         st.markdown(
             f"""
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
-                <span style="font-weight:700; font-size:0.95rem; color:#0f172a;">🔊 Audio Walkthrough</span>
-                <span class="badge-pill badge-green">Speaker: {speaker.capitalize()}</span>
-            </div>
+            <div class="socratic-reply-card">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.4rem;">
+                    <div style="font-weight:700; color:#581c87; font-size:1.02rem; display:flex; align-items:center; gap:0.4rem;">
+                        <span>🎯 Socratic Self-Correction Challenge: Resolve Node {derailment_step}</span>
+                    </div>
+                    <span class="badge-pill badge-green">Active Retrieval</span>
+                </div>
+                <div style="font-size:0.92rem; color:#374151; margin-bottom:0.75rem; line-height:1.45;">
+                    {socratic_challenge}
+                </div>
             """,
             unsafe_allow_html=True
         )
-        if st.session_state.audio_bytes:
-            st.audio(st.session_state.audio_bytes, format="audio/wav")
-            if st.session_state.audio_status_msg:
-                st.caption(st.session_state.audio_status_msg)
-        else:
-            st.info("Audio generation in progress or unavailable.")
 
-        if st.button("🔄 Re-synthesize Audio", use_container_width=True):
-            with st.spinner("Regenerating Sarvam TTS audio..."):
-                spoken_script = (
-                    diag.get("board_storyboard", {}).get("full_spoken_transcript")
-                    or diag["narration_script"]
+        socratic_reply = st.text_area(
+            "✍️ Your Self-Correction Turn (Explain how you will fix the logic using the Pivot Node invariant):",
+            height=85,
+            placeholder="e.g. Based on the green Pivot Node, my initial step failed because I overlooked the governing boundary condition...",
+            key="socratic_student_reply"
+        )
+
+        sub_col1, sub_col2 = st.columns([3, 4])
+        with sub_col1:
+            submit_socratic = st.button("🚀 Submit Socratic Correction", type="primary", use_container_width=True)
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        if submit_socratic:
+            if not socratic_reply.strip():
+                st.warning("Please articulate your corrected reasoning before submitting.")
+            else:
+                is_resolved, feedback_text, badge_level = pedagogy_engine.evaluate_student_socratic_reply(
+                    socratic_reply, diag
                 )
-                audio_bytes, audio_msg, is_real = sarvam_tts.synthesize_speech_sarvam(
-                    text=spoken_script,
-                    target_language_code=lang_code,
-                    speaker=speaker,
-                    model=tts_model,
-                    api_key=sarvam_key
-                )
-                st.session_state.audio_bytes = audio_bytes
-                st.session_state.audio_status_msg = audio_msg
+                st.session_state.socratic_response_msg = feedback_text
+                st.session_state.socratic_solved = is_resolved
+
+                if is_resolved:
+                    learner_model.resolve_misconception(profile, diag.get("canonical_concept", ""))
+                    learner_model.save_profile(profile)
+                    st.session_state.current_profile = profile
+                    st.balloons()
                 st.rerun()
 
-    with audio_col2:
-        st.markdown(
-            """
-            <div style="font-weight:700; font-size:0.95rem; color:#0f172a; margin-bottom:0.3rem;">
-                📜 Spoken Classroom Script (Bhasha Guru):
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        display_script = (
-            diag.get("board_storyboard", {}).get("full_spoken_transcript")
-            or diag.get("narration_script", "")
-        )
-        st.markdown(
-            f"""
-            <div class="narration-quote">
-                🗣️ "{display_script}"
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        if st.session_state.socratic_response_msg:
+            if st.session_state.socratic_solved:
+                st.success(st.session_state.socratic_response_msg)
+                st.markdown(
+                    f"<span class='badge-pill badge-green'>🎉 Longitudinal Mastery Upgraded: '{diag.get('canonical_concept')}' upgraded to solid!</span>",
+                    unsafe_allow_html=True
+                )
+            else:
+                st.warning(st.session_state.socratic_response_msg)
 
-    # Socratic Checkpoint & Active Self-Correction
-    st.markdown(
-        f"""
-        <div class="socratic-challenge-box">
-            <div style="display:flex; align-items:center; justify-content:space-between;">
-                <div style="font-weight:700; color:#065f46; font-size:1.08rem; display:flex; align-items:center; gap:0.4rem;">
-                    <span>🎯 Socratic Self-Correction Challenge: Resolve Node {diag.get('derailment_step', 2)}</span>
-                </div>
-                <span class="badge-pill badge-green">Active Retrieval</span>
-            </div>
-            <div class="socratic-prompt-text">
-                {diag.get('socratic_prompt')}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+        # -----------------------------------------------------
+        # Collapsible Pedagogical Diagnostics & Formal Taxonomy
+        # -----------------------------------------------------
+        with st.expander("📘 Deep Pedagogical Diagnostics & Formal Taxonomy (For Educators / Deep Dive)", expanded=False):
+            cd = diag.get("concept_diagnostics", {})
+            col_t1, col_t2 = st.columns(2)
+            with col_t1:
+                st.markdown("**Domain Taxonomy:**")
+                st.json(cd.get("topic_taxonomy", {}))
+                st.markdown("**Student Mental Model:**")
+                st.json(cd.get("student_mental_model", {}))
+            with col_t2:
+                st.markdown("**Mastery Assessment:**")
+                st.json(cd.get("mastery_assessment", {}))
+                st.markdown("**Remediation Recommendations:**")
+                st.json(cd.get("remediation_recommendations", {}))
 
-    is_output_pure_hindi = ("Hindi" in output_lang_name or "हिंदी" in output_lang_name) and ("Hinglish" not in output_lang_name and "हिंग्लिश" not in output_lang_name)
-    is_output_hinglish = ("Hinglish" in output_lang_name or "हिंग्लिश" in output_lang_name)
-
-    if is_output_pure_hindi:
-        lbl_turn = "##### ✍️ आपका स्व-सुधार प्रयास (हिंदी):"
-        lbl_socratic_reply = "हरे पिवट नोड पर विचार करें और बताएं कि आप अपने तर्क को कैसे सुधारेंगे:"
-        ph_socratic_reply = "उदा. पिवट नोड के अनुसार, मेरी प्रारंभिक पूर्वधारणा सीमांत शर्तों को पूरा नहीं करती थी क्योंकि..."
-        btn_socratic_reply = "🚀 समाधान सबमिट करें (हिंदी)"
-    elif is_output_hinglish:
-        lbl_turn = "##### ✍️ Your Self-Correction Turn (हिंग्लिश):"
-        lbl_socratic_reply = "Green Pivot Node par reflect karein aur explain karein ki aap logic kaise correct karenge:"
-        ph_socratic_reply = "e.g. Pivot node ke according, meri initial assumption governing conditions ko satisfy nahi kar rahi thi kyunki..."
-        btn_socratic_reply = "🚀 Submit Socratic Correction (हिंग्लिश)"
-    else:
-        lbl_turn = "##### ✍️ Your Self-Correction Turn:"
-        lbl_socratic_reply = "Reflect on the green Pivot Node and explain how you would correct your logic:"
-        ph_socratic_reply = "e.g. Based on the pivot node, my initial assumption overlooked the core constraint because..."
-        btn_socratic_reply = "🚀 Submit Socratic Correction"
-
-    st.markdown(lbl_turn)
-    socratic_reply = st.text_area(
-        lbl_socratic_reply,
-        height=90,
-        placeholder=ph_socratic_reply,
-        key="socratic_student_reply"
-    )
-
-    col_sub, col_skip = st.columns([2, 4])
-    with col_sub:
-        submit_socratic = st.button(btn_socratic_reply, type="primary", use_container_width=True)
-
-    if submit_socratic:
-        if not socratic_reply.strip():
-            st.warning("Please articulate your corrected reasoning before submitting.")
-        else:
-            is_resolved, feedback_text, badge_level = pedagogy_engine.evaluate_student_socratic_reply(
-                socratic_reply, diag
-            )
-            st.session_state.socratic_response_msg = feedback_text
-            st.session_state.socratic_solved = is_resolved
-
-            if is_resolved:
-                learner_model.resolve_misconception(profile, diag.get("canonical_concept", ""))
-                learner_model.save_profile(profile)
-                st.session_state.current_profile = profile
-                st.balloons()
-            st.rerun()
-
-    if st.session_state.socratic_response_msg:
-        if st.session_state.socratic_solved:
-            st.success(st.session_state.socratic_response_msg)
-            st.markdown(
-                f"<span class='badge-pill badge-green'>🎉 Longitudinal Mastery Updated: '{diag.get('canonical_concept')}' upgraded!</span>",
-                unsafe_allow_html=True
-            )
-        else:
-            st.warning(st.session_state.socratic_response_msg)
-
-    st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("<div style='font-size:0.85rem; font-weight:700; color:#475569; margin-top:0.75rem; margin-bottom:0.4rem;'>Alternative Formal Graphviz Dual Map:</div>", unsafe_allow_html=True)
+            try:
+                st.graphviz_chart(diag["dot_comparative"], use_container_width=True)
+            except Exception as e:
+                st.caption(f"Graphviz preview: {str(e)}")

@@ -329,6 +329,53 @@ class TestBhashaDoubtSolver(unittest.TestCase):
         none_sample = pedagogy_engine.get_sample_doubt_entry(None)
         self.assertIsNone(none_sample)
 
+    def test_interactive_blackboard_studio_canvas(self):
+        """Verify dynamic Miro/Excalidraw slate, glowing node cards, roughjs, and audio sync visualizer."""
+        import blackboard_component
+
+        sb = pedagogy_engine.generate_live_board_storyboard({}, matched_key="coding_balanced_parentheses")
+        diag = {
+            "canonical_concept": "Stack Invariants",
+            "canonical_root_misconception": "Equal count frequency assumption",
+            "derailment_step": 2,
+            "derailment_reason": "Failed to enforce prefix non-negativity constraint during scan",
+            "socratic_prompt": "What is balance value immediately after processing the first closing bracket?",
+            "student_nodes": [
+                {"id": "S1", "label": "Initialized balance counter", "is_error": False},
+                {"id": "S2", "label": "Evaluated at end only", "is_error": True}
+            ],
+            "remediation_nodes": [
+                {"id": "R1", "label": "Prefix Stack Invariant", "is_pivot": True}
+            ]
+        }
+        payload = blackboard_component.prepare_graph_payload_from_storyboard(sb, diag)
+        self.assertIn("nodes", payload)
+        self.assertIn("connectors", payload)
+        self.assertGreaterEqual(len(payload["nodes"]), 3)
+
+        # Check node types
+        types = [n["type"] for n in payload["nodes"]]
+        self.assertIn("pivot", types)
+        self.assertIn("derailed", types)
+        self.assertIn("remediation", types)
+        self.assertIn("socratic", types)
+
+        # Test HTML builder
+        html = blackboard_component.build_interactive_board_html(
+            graph_payload=payload,
+            audio_base64="dGVzdGF1ZGlv",
+            target_lang="English"
+        )
+        self.assertIn("#0B0F19", html)  # Dark slate background
+        self.assertIn("#1E293B", html)  # Dot grid
+        self.assertIn("roughjs", html)   # RoughJS library support
+        self.assertIn("waveformCanvas", html)  # Waveform visualizer
+        self.assertIn("btnZoomIn", html)       # Pan/zoom controls
+        self.assertIn("btnResetView", html)
+        self.assertIn("nodeInspector", html)   # Interactive node inspector
+        self.assertIn("CRITICAL PIVOT", html)  # Pivot badge
+        self.assertIn("COGNITIVE DERAILMENT", html) # Derailed badge
+
 
 
 if __name__ == "__main__":
