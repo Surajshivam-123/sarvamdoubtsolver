@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Sleek Dark Scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+/* Linear / Vercel-style Softened Dot Grid */
+.blackboard-grid {
+  background-color: #090D16;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Node Ambient Rim Lights & Glows */
+@keyframes ambientGlowAmber {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(245, 158, 11, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+}
+
+.glow-amber {
+  animation: ambientGlowAmber 2.8s infinite ease-in-out;
+}
+
+@keyframes ambientGlowEmerald {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(16, 185, 129, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+}
+
+.glow-emerald {
+  animation: ambientGlowEmerald 3s infinite ease-in-out;
+}
+
+@keyframes ambientGlowCrimson {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(239, 68, 68, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+}
+
+.glow-crimson {
+  animation: ambientGlowCrimson 2.5s infinite ease-in-out;
+}
+
+@keyframes ambientGlowViolet {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(139, 92, 246, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+}
+
+.glow-violet {
+  animation: ambientGlowViolet 2.8s infinite ease-in-out;
+}
+
+/* Directional Animated Dash Stroke for Divergence Edges */
+@keyframes dashTravel {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+.animate-dash-travel {
+  stroke-dasharray: 6 6;
+  animation: dashTravel 1.2s linear infinite;
+}
