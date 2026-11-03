@@ -32,6 +32,7 @@ import {
 import { MathRenderer } from './MathRenderer';
 
 interface BlackboardStudioProps {
+  isLoading?: boolean;
   boardSolve: BoardSolveResponse | null;
   divergenceGraph: DivergenceGraphResponse | null;
   graphPayload: GraphPayload | null;
@@ -45,6 +46,7 @@ interface BlackboardStudioProps {
 }
 
 export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
+  isLoading = false,
   boardSolve,
   divergenceGraph,
   graphPayload,
@@ -59,7 +61,7 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
   // Mode: Chalkboard Step-by-Step Derivation vs Divergence Graph
   const [activeTab, setActiveTab] = useState<'board' | 'graph'>('board');
 
-  // Chalkboard Derivation State
+  // Chalkboard Derivation State (Strictly reset whenever new problem output arrives)
   const [currentBoardStepIndex, setCurrentBoardStepIndex] = useState(0);
 
   // Audio state
@@ -71,6 +73,18 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
   const [activeSubtitle, setActiveSubtitle] = useState('');
   const [activeStepId, setActiveStepId] = useState<number | null>(null);
   const [showFullTranscript, setShowFullTranscript] = useState(false);
+
+  // Reset chalkboard step, subtitles, and stop previous problem audio when problem changes
+  useEffect(() => {
+    setCurrentBoardStepIndex(0);
+    setActiveStepId(null);
+    setActiveSubtitle('');
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsPlaying(false);
+    }
+  }, [boardSolve, canonicalTopic]);
 
   // Pan & Zoom Canvas State (for Graph)
   const [scale, setScale] = useState(1);
@@ -85,6 +99,12 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
   useEffect(() => {
     if (audioBase64 && audioRef.current) {
       audioRef.current.src = `data:audio/wav;base64,${audioBase64}`;
+      audioRef.current.load();
+      setIsPlaying(false);
+      setCurrentTime(0);
+    } else if (!audioBase64 && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.removeAttribute('src');
       audioRef.current.load();
       setIsPlaying(false);
       setCurrentTime(0);
@@ -287,6 +307,29 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="w-full h-[600px] blackboard-grid rounded-2xl border border-zinc-800 shadow-2xl flex flex-col items-center justify-center text-zinc-400 p-8 text-center relative overflow-hidden backdrop-blur-md">
+        <div className="relative mb-4">
+          <div className="w-16 h-16 rounded-2xl bg-zinc-900/90 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-2xl shadow-emerald-500/10">
+            <Sparkles className="w-8 h-8 text-emerald-400 animate-pulse" />
+          </div>
+          <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 animate-ping" />
+        </div>
+        <h3 className="text-base font-semibold text-zinc-100 mb-1.5 flex items-center gap-2">
+          <span>🧹 Chalkboard Erased & Re-Deriving Solution...</span>
+        </h3>
+        <p className="text-xs text-zinc-400 max-w-md leading-relaxed font-sans mb-3">
+          Analyzing your newly provided problem, diagnosing conceptual divergence points, and writing fresh chalk derivations on the board.
+        </p>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-950/80 border border-zinc-800 text-[11px] text-emerald-300 font-mono">
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span>Generating Board Schedule & Divergence Mind Map...</span>
+        </div>
+      </div>
+    );
+  }
+
   if (!graphPayload && !boardSolve) {
     return (
       <div className="w-full h-[600px] blackboard-grid rounded-2xl border border-zinc-800 shadow-2xl flex flex-col items-center justify-center text-zinc-400 p-8 text-center relative overflow-hidden">
@@ -297,7 +340,7 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
           Chalkboard Clean & Ready
         </h3>
         <p className="text-xs text-zinc-400 max-w-sm leading-relaxed">
-          Previous problem erased. Select any field preset above, or type/dictate your problem and thought process to begin.
+          Previous problem erased. Provide your problem statement and click &quot;Analyze Thinking&quot; to begin fresh step-by-step board derivation.
         </p>
       </div>
     );

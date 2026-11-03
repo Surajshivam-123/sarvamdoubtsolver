@@ -106,6 +106,7 @@ export const App: React.FC = () => {
 
   const loadPreset = (preset: PresetDoubt, autoRun: boolean = true) => {
     setActivePresetKey(preset.key);
+    setDiagnosisData(null); // Erase old problem output immediately!
     const isHi = (inputLang.includes('Hindi') || inputLang.includes('हिंदी')) && !inputLang.includes('Hinglish');
 
     const d = (isHi && preset.problem_statement_hi) ? preset.problem_statement_hi : preset.problem_statement;
@@ -140,31 +141,19 @@ export const App: React.FC = () => {
   };
 
   const handleDoubtChange = (val: string) => {
-    // If user starts editing or writing another problem while a preset was active:
+    // Whenever user types, pastes, or changes problem, erase old board output so it never sticks!
     if (activePresetKey !== 'custom') {
       setActivePresetKey('custom');
       setSteps(''); // Clear previous problem's thinking steps!
       setBreakdown('');
-      setDiagnosisData(null); // Erase previous problem's graph!
-    } else {
-      // If in custom mode, and problem is cleared:
-      if (!val.trim()) {
-        setSteps(''); // Clear previous problem's thinking steps!
-        setBreakdown('');
-        setDiagnosisData(null);
-      } else if (diagnosisData) {
-        // Erase old graph when user starts editing question after a previous diagnosis
-        setDiagnosisData(null);
-      }
     }
+    setDiagnosisData(null); // Instantly erase previous model's output!
     setDoubt(val);
   };
 
   const handleStepsChange = (val: string) => {
     setSteps(val);
-    if (!doubt.trim() && !val.trim() && activePresetKey === 'custom') {
-      setDiagnosisData(null);
-    }
+    setDiagnosisData(null); // Erase old board solve when user updates steps
   };
 
   const runDiagnosis = async (params: {
@@ -179,6 +168,7 @@ export const App: React.FC = () => {
     sarvamKey: string;
   }) => {
     setIsLoading(true);
+    setDiagnosisData(null); // Clean previous problem output immediately while new derivation runs!
     try {
       const res = await diagnoseDoubt({
         doubt: params.doubt,
@@ -203,13 +193,21 @@ export const App: React.FC = () => {
   };
 
   const handleManualDiagnose = () => {
-    if (!doubt.trim() || !steps.trim()) {
-      alert('Please provide both the problem statement and your derivation steps.');
+    if (!doubt.trim()) {
+      alert('Please provide a problem statement first.');
       return;
     }
+    const currentSteps = steps.trim()
+      ? steps
+      : 'Initial step-by-step formulation of governing principles and boundary constraints.';
+
+    if (!steps.trim()) {
+      setSteps(currentSteps);
+    }
+
     runDiagnosis({
       doubt,
-      steps,
+      steps: currentSteps,
       breakdown,
       studentId,
       inputLang,
@@ -307,6 +305,7 @@ export const App: React.FC = () => {
         {/* Below: Interactive Blackboard Studio & Socratic Guidance */}
         <div className="space-y-4">
           <BlackboardStudio
+            isLoading={isLoading}
             boardSolve={diagnosisData?.board_solve || null}
             divergenceGraph={diagnosisData?.divergence_graph || null}
             graphPayload={diagnosisData?.graph_payload || null}

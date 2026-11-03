@@ -180,21 +180,21 @@ export const SAMPLE_DOUBTS: Record<string, any> = {
     "socratic_prompt_hi": "प्रथम-क्रम गतिज में, क्या यकृत एक निश्चित मिलीग्राम दवा निकालता है, या रक्त में बची हुई दवा का एक निश्चित अनुपात (50%) निकालता है?"
   },
   "physics_incline_friction": {
-    "title": "Physics: Incline Work-Energy",
-    "subject": "Classical Physics & Mechanics",
-    "problem_statement": "A 2 kg block slides down a 5 m incline with a friction patch (μ = 0.2 over 3 m). At the bottom, it hits a spring (k = 400 N/m). Explain why equating mgh directly to 1/2 k x² fails.",
-    "problem_statement_hi": "एक 2 किलो का गुटका 5 मीटर ढलान पर फिसलता है जिसमें घर्षण क्षेत्र (μ = 0.2, 3 मीटर तक) है। तल पर यह स्प्रिंग (k = 400 N/m) से टकराता है। समझाइए कि mgh = 1/2 k x² क्यों गलत परिणाम देता है।",
-    "student_concept": "Frictionless Mechanical Energy Conservation",
-    "student_concept_hi": "घर्षणहीन यांत्रिक ऊर्जा संरक्षण",
-    "student_steps": "Step 1: Identified initial potential energy mgh.\nStep 2: Assumed total mechanical energy is strictly conserved throughout motion.\nStep 3: Equated mgh = 1/2 k x² without subtracting friction work.\nStep 4: Solved for x and calculated ~0.7 m, which is much higher than actual measurement.",
-    "student_steps_hi": "चरण 1: प्रारंभिक स्थितिज ऊर्जा mgh की पहचान की।\nचरण 2: मान लिया कि गति के दौरान यांत्रिक ऊर्जा पूर्णतः संरक्षित है।\nचरण 3: घर्षण कार्य घटाए बिना सीधे mgh = 1/2 k x² रख दिया।\nचरण 4: x हल किया और ~0.7 मीटर प्राप्त हुआ, जो वास्तविक मान से बहुत अधिक है।",
-    "student_breakdown": "Why did my calculated spring compression turn out significantly larger than the lab experiment?",
-    "student_breakdown_hi": "मेरा निकाला गया स्प्रिंग संपीड़न प्रयोगशाला प्रयोग से काफी अधिक क्यों आया?",
-    "canonical_concept": "Work-Energy Theorem with Dissipative Non-Conservative Forces",
-    "canonical_root_misconception": "Neglecting Negative Work of Friction (Thermal Energy Loss)",
+    "title": "Physics Figure: Incline & Normal Force MCQ",
+    "subject": "Classical Physics & Mechanics (Figure & Force Analysis)",
+    "problem_statement": "As shown in the figure, a block of mass m = 2 kg is placed on an inclined plane making an angle θ = 30° with the horizontal. The coefficient of kinetic friction between the block and the inclined surface is μ = 0.2. What is the acceleration of the block as it slides down the incline? (Take g = 9.8 m/s²)\n\nOptions:\n(A) 3.20 m/s²\n(B) 4.90 m/s²\n(C) 1.50 m/s²\n(D) 2.45 m/s²",
+    "problem_statement_hi": "जैसा कि चित्र में दिखाया गया है, द्रव्यमान m = 2 kg का एक गुटका क्षैतिज से θ = 30° कोण वाले झुके हुए तल पर रखा है। गतिज घर्षण गुणांक μ = 0.2 है। नीचे फिसलते समय गुटके का त्वरण क्या है? (g = 9.8 m/s²)\n\nविकल्प:\n(A) 3.20 m/s²\n(B) 4.90 m/s²\n(C) 1.50 m/s²\n(D) 2.45 m/s²",
+    "student_concept": "Flat Plane Fallacy (Equating N = mg on Incline)",
+    "student_concept_hi": "समतल तल भ्रम (ढलान पर भी N = mg मानना)",
+    "student_steps": "Step 1: Drew FBD on the 30° inclined plane.\nStep 2: Normal reaction N = mg = (2)(9.8) = 19.60 N.\nStep 3: Kinetic friction f_k = μ N = (0.2)(19.60) = 3.92 N.\nStep 4: Net force down incline F_net = mg sin(30°) - f_k = 9.80 - 3.92 = 5.88 N.\nStep 5: Acceleration a = 5.88 / 2 = 2.94 m/s², which mismatches Option (A) 3.20 m/s².",
+    "student_steps_hi": "चरण 1: 30° झुके हुए तल पर FBD बनाया।\nचरण 2: अभिलम्ब प्रतिक्रिया N = mg = (2)(9.8) = 19.60 N मान लिया।\nचरण 3: घर्षण बल f_k = μ N = (0.2)(19.60) = 3.92 N निकाला।\nचरण 4: तल के अनुदिश बल F_net = mg sin(30°) - f_k = 9.80 - 3.92 = 5.88 N।\nचरण 5: त्वरण a = 2.94 m/s² आया, जो विकल्प (A) 3.20 m/s² से मेल नहीं खाता।",
+    "student_breakdown": "Why did my calculated acceleration come out as 2.94 m/s² instead of 3.20 m/s²? Why does Option (A) say 3.20 m/s²?",
+    "student_breakdown_hi": "मेरा निकाला गया त्वरण 3.20 m/s² के बजाय 2.94 m/s² क्यों आ रहा है? विकल्प (A) 3.20 m/s² सही क्यों है?",
+    "canonical_concept": "Newtonian Invariant: Normal Reaction N = mg cos(θ) & Kinetic Friction f_k = μ N",
+    "canonical_root_misconception": "Equating Normal Reaction to Full Weight (N = mg) on an Inclined Plane",
     "derailment_step": 2,
-    "derailment_reason": "Ignored that sliding friction does negative work W_nc = -μ N d, converting part of the mechanical energy into irreversible thermal heat.",
-    "socratic_prompt": "When the block slides over the rough patch, what happens to the energy lost to friction? Does that lost heat reach the spring?",
-    "socratic_prompt_hi": "जब गुटका खुरदुरे भाग पर फिसलता है, तो घर्षण में नष्ट हुई ऊर्जा का क्या होता है? क्या वह ऊष्मा स्प्रिंग तक पहुँच पाती है?"
+    "derailment_reason": "Equated normal force to full gravitational weight (N = mg = 19.60 N) instead of wedge perpendicular component (N = mg cos(30°) = 16.97 N), which overestimated friction.",
+    "socratic_prompt": "Look closely at the inclined plane in the figure: In which direction does the normal reaction act relative to the plane surface? Why does friction depend on mg cos(30°) rather than mg?",
+    "socratic_prompt_hi": "चित्र में झुके हुए तल को ध्यान से देखिए: अभिलम्ब बल तल के लम्बवत् लगता है या ऊर्ध्वाधर? घर्षण बल mg के बजाय mg cos(30°) पर क्यों निर्भर करता है?"
   }
 };

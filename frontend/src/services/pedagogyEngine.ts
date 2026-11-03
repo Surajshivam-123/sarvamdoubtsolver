@@ -5,6 +5,7 @@
  */
 
 import { SAMPLE_DOUBTS } from '../data/sampleDoubts';
+import { getStoredApiKey } from './sarvamApi';
 import {
   NodeCard,
   Connector,
@@ -44,9 +45,327 @@ export interface DomainProfile {
   derailmentReason: string;
   socraticPrompt: string;
   hinglishPrompt: string;
+  narrationScript?: string;
   boardSteps: BoardStep[];
   graphNodes: GraphNode[];
   graphEdges: GraphEdge[];
+}
+
+/**
+ * Universal Sovereign LLM Problem Solver (Powered by Sarvam AI sarvam-105b-conversations)
+ * Dynamically derives publication-grade 5-step chalkboard solutions, diagnoses misconceptions,
+ * generates 6-node divergence mind maps, and creates spoken scripts for ANY problem.
+ */
+export async function solveDynamicProblemWithSarvamLlm(
+  problem: string,
+  steps: string = '',
+  outputLangName: string = 'Hinglish (हिंग्लिश)',
+  studentName: string = 'Learner'
+): Promise<DomainProfile | null> {
+  const apiKey = getStoredApiKey();
+  if (!apiKey || !problem.trim()) return null;
+
+  try {
+    const prompt = `You are a master academic pedagogy engine, STEM professor, and tutor for Sansay Bhasha Doubt Solver.
+The student has provided an academic problem and optionally their initial thinking or attempt.
+
+Problem:
+"""
+${problem.trim()}
+"""
+
+Student's Attempt / Thinking:
+"""
+${steps.trim() || 'Initial attempt to formulate equations and solve the problem.'}
+"""
+
+Target Spoken Narration Language: ${outputLangName}
+
+Task:
+1. Accurately solve the student's EXACT problem step-by-step using first principles.
+2. Identify the canonical governing concept.
+3. Identify the student's root misconception or likely cognitive pitfall (e.g. formula confusion, sign error, boundary neglect, wrong coordinate frame).
+4. Create a 5-step digital chalkboard storyboard with LaTeX equations and step-by-step spoken narration in ${outputLangName}.
+5. Create a 6-node divergence mind-map graph:
+   - N1_PREMISE (Sound Premise: givens, diagram geometry, and baseline conditions)
+   - N2_PIVOT (Critical Pivot: the branch point where intuition diverges from first principles)
+   - N3_DERAILED (Derailed Branch: where flawed reasoning leads)
+   - N4_CONTRADICTION (Contradiction / Option Mismatch)
+   - N5_CANONICAL (Canonical Path: governing invariant and correct resolution)
+   - N6_SOCRATIC (Socratic Checkpoint: verified answer matching the correct option and reflection challenge)
+6. Write a detailed teacher narration script in ${outputLangName} explaining the problem, the derivation, where the misconception happened, and the socratic question.
+
+Output ONLY valid JSON matching this exact structure:
+{
+  "domain_id": "physics_dynamics",
+  "domain_name": "Classical Physics & Mechanics",
+  "canonical_concept": "string",
+  "root_misconception": "string",
+  "derailment_step": 2,
+  "derailment_reason": "string",
+  "socratic_prompt": "string",
+  "hinglish_prompt": "string",
+  "narration_script": "string (detailed spoken masterclass narration in ${outputLangName})",
+  "board_steps": [
+    {
+      "stepIndex": 1,
+      "title": "Step 1: ...",
+      "latexContent": "...",
+      "annotation": "...",
+      "speechScript": "...",
+      "chalkColor": "emerald"
+    },
+    {
+      "stepIndex": 2,
+      "title": "Step 2: ...",
+      "latexContent": "...",
+      "annotation": "...",
+      "speechScript": "...",
+      "chalkColor": "amber"
+    },
+    {
+      "stepIndex": 3,
+      "title": "Step 3: ...",
+      "latexContent": "...",
+      "annotation": "...",
+      "speechScript": "...",
+      "chalkColor": "rose"
+    },
+    {
+      "stepIndex": 4,
+      "title": "Step 4: ...",
+      "latexContent": "...",
+      "annotation": "...",
+      "speechScript": "...",
+      "chalkColor": "cyan"
+    },
+    {
+      "stepIndex": 5,
+      "title": "Step 5: ...",
+      "latexContent": "...",
+      "annotation": "...",
+      "speechScript": "...",
+      "chalkColor": "emerald"
+    }
+  ],
+  "graph_nodes": [
+    {
+      "id": "N1_PREMISE",
+      "type": "SOUND_PREMISE",
+      "label": "...",
+      "mathLatex": "...",
+      "description": "...",
+      "badge": "SOUND PREMISE",
+      "audioScriptIndic": "..."
+    },
+    {
+      "id": "N2_PIVOT",
+      "type": "CRITICAL_PIVOT",
+      "label": "...",
+      "mathLatex": "...",
+      "description": "...",
+      "badge": "CRITICAL PIVOT",
+      "audioScriptIndic": "..."
+    },
+    {
+      "id": "N3_DERAILED",
+      "type": "DERAILED_BRANCH",
+      "label": "...",
+      "mathLatex": "...",
+      "description": "...",
+      "badge": "DERAILED BRANCH",
+      "audioScriptIndic": "..."
+    },
+    {
+      "id": "N4_CONTRADICTION",
+      "type": "DERAILED_BRANCH",
+      "label": "...",
+      "mathLatex": "...",
+      "description": "...",
+      "badge": "CONTRADICTION",
+      "audioScriptIndic": "..."
+    },
+    {
+      "id": "N5_CANONICAL",
+      "type": "CANONICAL_PATH",
+      "label": "...",
+      "mathLatex": "...",
+      "description": "...",
+      "badge": "CANONICAL PATH",
+      "audioScriptIndic": "..."
+    },
+    {
+      "id": "N6_SOCRATIC",
+      "type": "SOCRATIC_CHECKPOINT",
+      "label": "...",
+      "mathLatex": "...",
+      "description": "...",
+      "badge": "SOCRATIC CHECKPOINT",
+      "audioScriptIndic": "..."
+    }
+  ]
+}`;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
+
+    const res = await fetch('https://api.sarvam.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-subscription-key': apiKey,
+      },
+      body: JSON.stringify({
+        model: 'sarvam-105b-conversations',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an Indic academic pedagogy engine. Solve the exact problem accurately and return ONLY valid JSON.',
+          },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.15,
+        max_tokens: 2200,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timer);
+
+    if (!res.ok) {
+      console.warn('Sarvam LLM solver HTTP error:', res.status);
+      return null;
+    }
+
+    const data = await res.json();
+    let content = data.choices?.[0]?.message?.content?.trim();
+    if (!content) return null;
+
+    // Strip code fences if present
+    content = content.replace(/^```[a-z]*\s*/i, '').replace(/```$/i, '').trim();
+
+    // Find JSON boundaries
+    const firstBrace = content.indexOf('{');
+    const lastBrace = content.lastIndexOf('}');
+    if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+      return null;
+    }
+
+    const jsonStr = content.slice(firstBrace, lastBrace + 1);
+    const parsed = JSON.parse(jsonStr);
+
+    // Normalize board steps (handling string array or object array)
+    const rawBoardSteps = Array.isArray(parsed.board_steps) ? parsed.board_steps : [];
+    const validChalkColors = ['emerald', 'amber', 'rose', 'cyan', 'purple'];
+    const boardSteps: BoardStep[] = rawBoardSteps.map((s: any, idx: number) => {
+      if (typeof s === 'string') {
+        const parts = s.split(':');
+        const title = parts.length > 1 ? parts[0].trim() : `Step ${idx + 1}`;
+        const math = parts.length > 1 ? parts.slice(1).join(':').trim() : s.trim();
+        return {
+          stepIndex: idx + 1,
+          title,
+          latexContent: math,
+          annotation: 'First principles derivation',
+          speechScript: s,
+          chalkColor: (idx === 1 ? 'amber' : idx === 2 ? 'rose' : idx === 3 ? 'cyan' : 'emerald') as any,
+          durationEstimateMs: 4200,
+        };
+      }
+      return {
+        stepIndex: typeof s.stepIndex === 'number' ? s.stepIndex : (s.step_id || idx + 1),
+        title: s.title || s.step_title || `Step ${idx + 1}`,
+        latexContent: s.latexContent || s.latex || s.math || s.content || '',
+        annotation: s.annotation || s.note || '',
+        speechScript: s.speechScript || s.explanation || s.script || '',
+        chalkColor: (validChalkColors.includes(s.chalkColor)
+          ? s.chalkColor
+          : (idx === 1 ? 'amber' : idx === 2 ? 'rose' : idx === 3 ? 'cyan' : 'emerald')) as any,
+        durationEstimateMs: typeof s.durationEstimateMs === 'number' ? s.durationEstimateMs : 4200,
+      };
+    });
+
+    const nodePositions: Record<string, { x: number; y: number }> = {
+      N1_PREMISE: { x: 50, y: 180 },
+      N2_PIVOT: { x: 310, y: 180 },
+      N3_DERAILED: { x: 570, y: 70 },
+      N4_CONTRADICTION: { x: 840, y: 70 },
+      N5_CANONICAL: { x: 570, y: 310 },
+      N6_SOCRATIC: { x: 840, y: 310 },
+    };
+
+    let graphNodes: GraphNode[] = [];
+    const rawGraphNodes = Array.isArray(parsed.graph_nodes) ? parsed.graph_nodes : [];
+    if (rawGraphNodes.length >= 4) {
+      graphNodes = rawGraphNodes.map((n: any, idx: number) => {
+        const id = (typeof n === 'object' && n.id) || (idx === 0 ? 'N1_PREMISE' : idx === 1 ? 'N2_PIVOT' : idx === 2 ? 'N3_DERAILED' : idx === 3 ? 'N4_CONTRADICTION' : idx === 4 ? 'N5_CANONICAL' : 'N6_SOCRATIC');
+        if (typeof n === 'string') {
+          return {
+            id,
+            type: (id === 'N1_PREMISE' ? 'SOUND_PREMISE' : id === 'N2_PIVOT' ? 'CRITICAL_PIVOT' : id.includes('DERAILED') || id.includes('CONTRADICTION') ? 'DERAILED_BRANCH' : id.includes('CANONICAL') ? 'CANONICAL_PATH' : 'SOCRATIC_CHECKPOINT') as any,
+            label: n,
+            mathLatex: '',
+            description: n,
+            badge: id.replace('_', ' '),
+            audioScriptIndic: n,
+            position: nodePositions[id] || { x: 50 + idx * 150, y: 180 },
+          };
+        }
+        return {
+          id,
+          type: n.type || (id === 'N1_PREMISE' ? 'SOUND_PREMISE' : id === 'N2_PIVOT' ? 'CRITICAL_PIVOT' : id.includes('DERAILED') || id.includes('CONTRADICTION') ? 'DERAILED_BRANCH' : id.includes('CANONICAL') ? 'CANONICAL_PATH' : 'SOCRATIC_CHECKPOINT'),
+          label: n.label || `Node ${idx + 1}`,
+          mathLatex: n.mathLatex || '',
+          description: n.description || '',
+          badge: n.badge || (id === 'N1_PREMISE' ? 'SOUND PREMISE' : id === 'N2_PIVOT' ? 'CRITICAL PIVOT' : id.includes('DERAILED') ? 'DERAILED BRANCH' : id.includes('CONTRADICTION') ? 'CONTRADICTION' : id.includes('CANONICAL') ? 'CANONICAL PATH' : 'SOCRATIC CHECKPOINT'),
+          audioScriptIndic: n.audioScriptIndic || n.description || '',
+          position: nodePositions[id] || { x: 50 + idx * 150, y: 180 },
+        };
+      });
+    } else {
+      // Synthesize 6 canonical nodes from board steps and concepts
+      const cConcept = parsed.canonical_concept || 'Governing First Principles';
+      const rMis = parsed.root_misconception || 'Unverified Assumption';
+      const dReason = parsed.derailment_reason || 'Reasoning diverged at pivot';
+      graphNodes = [
+        { id: 'N1_PREMISE', type: 'SOUND_PREMISE', label: boardSteps[0]?.title || 'Step 1: System Givens', mathLatex: boardSteps[0]?.latexContent || '', description: 'Initial parameters and boundary conditions.', badge: 'SOUND PREMISE', audioScriptIndic: 'System initial conditions established.', position: nodePositions['N1_PREMISE'] },
+        { id: 'N2_PIVOT', type: 'CRITICAL_PIVOT', label: boardSteps[1]?.title || 'Step 2: Governing Decision', mathLatex: 'First Principles vs Local Intuition', description: 'Branch point where canonical principle diverges from misconception.', badge: 'CRITICAL PIVOT', audioScriptIndic: 'Critical decision point in derivation.', position: nodePositions['N2_PIVOT'] },
+        { id: 'N3_DERAILED', type: 'DERAILED_BRANCH', label: `Derailed: ${rMis.slice(0, 30)}`, mathLatex: dReason.slice(0, 40), description: rMis, badge: 'DERAILED BRANCH', audioScriptIndic: 'Cognitive misconception occurred.', position: nodePositions['N3_DERAILED'] },
+        { id: 'N4_CONTRADICTION', type: 'DERAILED_BRANCH', label: 'Option Mismatch / Contradiction', mathLatex: 'Result \\neq Options', description: 'Produces conflicting result contradicting system boundaries.', badge: 'CONTRADICTION', audioScriptIndic: 'Contradiction with valid physics options.', position: nodePositions['N4_CONTRADICTION'] },
+        { id: 'N5_CANONICAL', type: 'CANONICAL_PATH', label: `Canonical: ${cConcept.slice(0, 30)}`, mathLatex: boardSteps[3]?.latexContent || boardSteps[2]?.latexContent || '', description: cConcept, badge: 'CANONICAL PATH', audioScriptIndic: 'Governing first principles invariant restored.', position: nodePositions['N5_CANONICAL'] },
+        { id: 'N6_SOCRATIC', type: 'SOCRATIC_CHECKPOINT', label: boardSteps[4]?.title || 'Step 5: Verified Solution', mathLatex: boardSteps[4]?.latexContent || '', description: 'Verified target answer.', badge: 'SOCRATIC CHECKPOINT', audioScriptIndic: 'Correct answer and self-correction checkpoint.', position: nodePositions['N6_SOCRATIC'] },
+      ];
+    }
+
+    const graphEdges: GraphEdge[] = [
+      { id: 'e1', source: 'N1_PREMISE', target: 'N2_PIVOT', label: 'Premise Sound', status: 'valid', animated: false },
+      { id: 'e2', source: 'N2_PIVOT', target: 'N3_DERAILED', label: 'Critical Divergence', status: 'derailed', animated: true },
+      { id: 'e3', source: 'N3_DERAILED', target: 'N4_CONTRADICTION', label: 'Option Inconsistency', status: 'derailed', animated: true },
+      { id: 'e4', source: 'N2_PIVOT', target: 'N5_CANONICAL', label: 'First Principles Invariant', status: 'scaffold', animated: false },
+      { id: 'e5', source: 'N5_CANONICAL', target: 'N6_SOCRATIC', label: 'Verified Solution', status: 'valid', animated: false },
+    ];
+
+    if (boardSteps.length >= 3 && graphNodes.length >= 4) {
+      return {
+        domainId: parsed.domain_id || 'dynamic_solved',
+        domainName: parsed.domain_name || 'Academic Reasoning & STEM Derivation',
+        bloomLevel: 'Analysis & Evaluation',
+        canonicalConcept: parsed.canonical_concept || 'Governing First-Principles Invariant',
+        rootMisconception: parsed.root_misconception || 'Unverified Intuition / Coordinate Flaw',
+        derailmentStep: typeof parsed.derailment_step === 'number' ? parsed.derailment_step : 2,
+        derailmentReason: parsed.derailment_reason || 'Applied unverified assumption without enforcing boundary conservation.',
+        socraticPrompt: parsed.socratic_prompt || 'Reflect on the governing constraint: how does the system invariant resolve this divergence?',
+        hinglishPrompt: parsed.hinglish_prompt || 'Step 2 par gaur karein: governing invariant ko apply karne se kya difference aata hai?',
+        narrationScript: parsed.narration_script || '',
+        boardSteps,
+        graphNodes,
+        graphEdges,
+      };
+    }
+  } catch (err) {
+    console.warn('Sarvam LLM solver error:', err);
+  }
+  return null;
 }
 
 /**
@@ -56,7 +375,371 @@ export interface DomainProfile {
 export function detectUniversalDomain(problem: string, steps: string = '', breakdown: string = ''): DomainProfile {
   const text = `${problem} ${steps} ${breakdown}`.toLowerCase();
 
-  // 1. MATHEMATICS & CALCULUS
+  // 1A. ELECTRIC CIRCUITS & RESISTORS
+  if (
+    /\b(circuit|resistor|resistors|ohm|ohms|Ω|voltage|battery|series|parallel|v\s*=\s*ir|current drawn)\b/i.test(text)
+  ) {
+    const numMatches = [...text.matchAll(/\b(\d+(?:\.\d+)?)\s*(?:ohm|ohms|Ω|v|volts?|a|amp|amperes?)\b/gi)];
+    const r1 = numMatches[0] ? parseFloat(numMatches[0][1]) : 6;
+    const r2 = numMatches[1] ? parseFloat(numMatches[1][1]) : 3;
+    const vMatch = text.match(/\b(\d+(?:\.\d+)?)\s*(?:v|volts?)\b/i);
+    const v = vMatch ? parseFloat(vMatch[1]) : 12;
+    const rParallel = (r1 * r2) / (r1 + r2);
+    const iTotal = v / rParallel;
+
+    return {
+      domainId: 'physics_circuits',
+      domainName: 'Physics: Electric Circuits & Ohm\'s Law',
+      bloomLevel: 'Network Analysis & Conservation Laws',
+      canonicalConcept: 'Kirchhoff\'s Junction Law & Parallel Resistance Invariant: 1/R_eq = 1/R_1 + 1/R_2',
+      rootMisconception: 'Conflating Series and Parallel Topologies (Direct Linear Resistance Addition)',
+      derailmentStep: 2,
+      derailmentReason: `Treated parallel branches as a single series loop (R_eq = R_1 + R_2 = ${(r1 + r2).toFixed(1)} Ω), failing to recognize shared potential nodes.`,
+      socraticPrompt: `When resistors share both common nodes across a battery, does current divide between multiple paths? Why must equivalent resistance be less than the smallest branch?`,
+      hinglishPrompt: `Parallel circuit mein current do branches mein batata hai: 1/R_eq = 1/R_1 + 1/R_2 kyu lagta hai aur total resistance kisi ek branch se bhi kam kyu aati hai?`,
+      boardSteps: [
+        {
+          stepIndex: 1,
+          title: 'Step 1: Circuit Topology & Givens',
+          latexContent: `V = ${v}\\text{ V}, \\quad R_1 = ${r1}\\,\\Omega, \\quad R_2 = ${r2}\\,\\Omega \\quad (R_1 \\parallel R_2)`,
+          annotation: 'Identify parallel nodes sharing common potential difference V',
+          speechScript: `Pehle circuit givens note karein: battery voltage ${v}V hai, aur do resistors ${r1} ohm aur ${r2} ohm parallel mein jude hain.`,
+          chalkColor: 'emerald',
+          durationEstimateMs: 4000,
+        },
+        {
+          stepIndex: 2,
+          title: 'Step 2: Student Attempt (Series Addition Fallacy)',
+          latexContent: `\\text{Fallacy: } R_{\\text{err}} = R_1 + R_2 = ${r1} + ${r2} = ${(r1 + r2).toFixed(1)}\\,\\Omega \\implies I = \\frac{${v}}{${(r1 + r2).toFixed(1)}} = ${(v / (r1 + r2)).toFixed(2)}\\text{ A}`,
+          annotation: '⚠️ Critical Pivot: Blindly added resistors in series despite parallel branches',
+          speechScript: `Step 2 par logic derail hua: aapne parallel branches ko series ki tarah add kar diya, jisse resistance ${(r1 + r2).toFixed(1)} ohm aayi.`,
+          chalkColor: 'amber',
+          durationEstimateMs: 4400,
+        },
+        {
+          stepIndex: 3,
+          title: 'Step 3: Kirchhoff Node Contradiction',
+          latexContent: `R_{\\text{parallel}} < \\min(R_1, R_2) = ${Math.min(r1, r2)}\\,\\Omega \\implies R = ${(r1 + r2).toFixed(1)}\\,\\Omega \\text{ is Contradictory}`,
+          annotation: 'Adding parallel paths strictly lowers total resistance below each individual branch',
+          speechScript: `Contradiction dekhiye: parallel raste badhne par resistance hamesha sabse chhote resistor se bhi kam honi chahiye.`,
+          chalkColor: 'rose' as any,
+          durationEstimateMs: 4200,
+        },
+        {
+          stepIndex: 4,
+          title: 'Step 4: Canonical Parallel Combination',
+          latexContent: `\\frac{1}{R_{\\text{eq}}} = \\frac{1}{${r1}} + \\frac{1}{${r2}} = \\frac{${r1 + r2}}{${r1 * r2}} \\implies R_{\\text{eq}} = ${rParallel.toFixed(2)}\\,\\Omega`,
+          annotation: 'Enforce reciprocal conductance addition for parallel branches',
+          speechScript: `Canonical rule apply karein: 1/R_eq = 1/${r1} + 1/${r2}, jisse equivalent resistance ${rParallel.toFixed(2)} ohm aati hai.`,
+          chalkColor: 'cyan',
+          durationEstimateMs: 4600,
+        },
+        {
+          stepIndex: 5,
+          title: 'Step 5: Verified Current via Ohm\'s Law',
+          latexContent: `I = \\frac{V}{R_{\\text{eq}}} = \\frac{${v}}{${rParallel.toFixed(2)}} = ${iTotal.toFixed(2)}\\text{ A}`,
+          annotation: 'Exact circuit current conforming to Ohm\'s Law',
+          speechScript: `Ohm's Law se total current I = V / R_eq = ${iTotal.toFixed(2)} Amperes calculate hota hai.`,
+          chalkColor: 'emerald',
+          durationEstimateMs: 4000,
+        },
+      ],
+      graphNodes: [
+        { id: 'N1_PREMISE', type: 'SOUND_PREMISE', label: 'Circuit Parameters', mathLatex: `V = ${v}\\text{V}, \\; R_1=${r1}\\Omega, \\; R_2=${r2}\\Omega`, description: 'Identified supply voltage and resistor components.', badge: 'SOUND PREMISE', audioScriptIndic: 'Circuit parameters identified.', position: { x: 50, y: 180 } },
+        { id: 'N2_PIVOT', type: 'CRITICAL_PIVOT', label: 'Topology Decision', mathLatex: 'R_1 + R_2 \\text{ vs } (1/R_1 + 1/R_2)^{-1}', description: 'Branch point: Series loop vs parallel dual branch.', badge: 'CRITICAL PIVOT', audioScriptIndic: 'Pivot: series addition ya reciprocal parallel?', position: { x: 310, y: 180 } },
+        { id: 'N3_DERAILED', type: 'DERAILED_BRANCH', label: 'Series Fallacy', mathLatex: `R = ${(r1 + r2).toFixed(1)}\\Omega`, description: 'Assumed resistors are connected in end-to-end series.', badge: 'DERAILED BRANCH', audioScriptIndic: 'Resistors series mein galat add ho gaye.', position: { x: 570, y: 70 } },
+        { id: 'N4_CONTRADICTION', type: 'DERAILED_BRANCH', label: 'Impedance Contradiction', mathLatex: `R > \\min(R_1, R_2)`, description: 'Violates parallel conductance property.', badge: 'CONTRADICTION', audioScriptIndic: 'Calculated current options se mismatch hui.', position: { x: 840, y: 70 } },
+        { id: 'N5_CANONICAL', type: 'CANONICAL_PATH', label: 'Parallel Reciprocal Invariant', mathLatex: `R_{\\text{eq}} = ${rParallel.toFixed(2)}\\Omega`, description: 'Enforces parallel potential invariant.', badge: 'CANONICAL PATH', audioScriptIndic: 'Correct parallel equivalent nikala.', position: { x: 570, y: 310 } },
+        { id: 'N6_SOCRATIC', type: 'SOCRATIC_CHECKPOINT', label: `Ohm's Law: ${iTotal.toFixed(2)} A`, mathLatex: `I = \\frac{${v}}{${rParallel.toFixed(2)}} = ${iTotal.toFixed(2)}\\text{ A}`, description: 'Validates target current output.', badge: 'SOCRATIC CHECKPOINT', audioScriptIndic: 'Final current verify kijiye.', position: { x: 840, y: 310 } },
+      ],
+      graphEdges: [
+        { id: 'e1', source: 'N1_PREMISE', target: 'N2_PIVOT', label: 'Topology Sound', status: 'valid', animated: false },
+        { id: 'e2', source: 'N2_PIVOT', target: 'N3_DERAILED', label: 'Assume Series', status: 'derailed', animated: true },
+        { id: 'e3', source: 'N3_DERAILED', target: 'N4_CONTRADICTION', label: 'Contradicts Parallel', status: 'derailed', animated: true },
+        { id: 'e4', source: 'N2_PIVOT', target: 'N5_CANONICAL', label: 'Parallel Law', status: 'scaffold', animated: false },
+        { id: 'e5', source: 'N5_CANONICAL', target: 'N6_SOCRATIC', label: 'Ohm\'s Law Verified', status: 'valid', animated: false },
+      ],
+    };
+  }
+
+  // 1B. PROJECTILE MOTION & 2D KINEMATICS
+  if (
+    /\b(projectile|trajectory|angle of projection|thrown at an angle|horizontal component|vertical component|maximum height.*angle|range.*angle)\b/i.test(text)
+  ) {
+    const uMatch = text.match(/\b(?:velocity|speed|u)\s*=?\s*(\d+(?:\.\d+)?)\s*(?:m\/s)?\b/i);
+    const angleMatch = text.match(/(?:θ|theta|angle)\s*=?\s*(\d+(?:\.\d+)?)(?:°|deg)?/i);
+    const u = uMatch ? parseFloat(uMatch[1]) : 50;
+    const thetaDeg = angleMatch ? parseFloat(angleMatch[1]) : 53;
+    const g = 10;
+    const thetaRad = (thetaDeg * Math.PI) / 180;
+    const sinT = Math.sin(thetaRad);
+    const uy = u * sinT;
+    const maxHeight = (uy * uy) / (2 * g);
+
+    return {
+      domainId: 'physics_projectile',
+      domainName: 'Physics: 2D Projectile Kinematics',
+      bloomLevel: 'Kinematic Decomposition & Independence of Motion',
+      canonicalConcept: 'Galilean Independence of Motion: Vertical Apex H = (u sin θ)² / 2g',
+      rootMisconception: 'Conflating Total Speed with Orthogonal Vertical Velocity Component',
+      derailmentStep: 2,
+      derailmentReason: `Substituted total launch speed (u = ${u} m/s) into the 1D height equation H = u² / 2g instead of vertical component u_y = u sin(${thetaDeg}°).`,
+      socraticPrompt: `In two-dimensional projectile motion, which component of velocity opposes gravitational acceleration? Why does the horizontal velocity not contribute to maximum height?`,
+      hinglishPrompt: `Projectile motion mein gravity sirf vertical direction mein act karti hai. Maximum height nikalte waqt full velocity u ke bajaye u sin θ kyu lena padta hai?`,
+      boardSteps: [
+        {
+          stepIndex: 1,
+          title: 'Step 1: Projectile Parameters & Coordinate Setup',
+          latexContent: `u = ${u}\\text{ m/s}, \\quad \\theta = ${thetaDeg}^\\circ, \\quad g = ${g}\\text{ m/s}^2, \\quad a_x = 0, \\; a_y = -g`,
+          annotation: 'Decompose initial motion into independent horizontal and vertical coordinate axes',
+          speechScript: `Pehle launch parameters note karein: initial velocity ${u} m/s, launch angle ${thetaDeg} degrees, aur gravity ${g} m/s².`,
+          chalkColor: 'emerald',
+          durationEstimateMs: 4000,
+        },
+        {
+          stepIndex: 2,
+          title: 'Step 2: Student Attempt (Total Velocity Fallacy)',
+          latexContent: `\\text{Fallacy: } H = \\frac{u^2}{2g} = \\frac{${u}^2}{2(${g})} = \\frac{${u * u}}{${2 * g}} = ${(u * u / (2 * g)).toFixed(1)}\\text{ m}`,
+          annotation: '⚠️ Critical Pivot: Omitted angular decomposition and treated motion as purely vertical',
+          speechScript: `Step 2 par logic derail hua: aapne poori velocity ${u} m/s use kar li, jabki horizontal component gravity ke khilaf nahi jaata.`,
+          chalkColor: 'amber',
+          durationEstimateMs: 4400,
+        },
+        {
+          stepIndex: 3,
+          title: 'Step 3: Component Resolution',
+          latexContent: `u_y = u\\sin(${thetaDeg}^\\circ) = ${u} \\times ${sinT.toFixed(2)} = ${uy.toFixed(1)}\\text{ m/s}, \\quad u_x = u\\cos(${thetaDeg}^\\circ)`,
+          annotation: 'Only vertical velocity u_y battles gravity; horizontal u_x remains constant',
+          speechScript: `Sahi method: vertical velocity u_y = u sin(${thetaDeg}°) = ${uy.toFixed(1)} m/s hai. Sirf yahi height decide karegi.`,
+          chalkColor: 'rose' as any,
+          durationEstimateMs: 4200,
+        },
+        {
+          stepIndex: 4,
+          title: 'Step 4: Apex Kinematic Equation',
+          latexContent: `v_y^2 = u_y^2 - 2gH = 0 \\implies H = \\frac{u_y^2}{2g} = \\frac{(${uy.toFixed(1)})^2}{2(${g})}`,
+          annotation: 'At the apex, vertical velocity becomes instantaneously zero (v_y = 0)',
+          speechScript: 'Apex par vertical velocity zero ho jaati hai, isliye H = u_y squared divided by 2g.',
+          chalkColor: 'cyan',
+          durationEstimateMs: 4600,
+        },
+        {
+          stepIndex: 5,
+          title: 'Step 5: Verified Maximum Height Solution',
+          latexContent: `H = \\frac{${(uy * uy).toFixed(1)}}{${2 * g}} = ${maxHeight.toFixed(1)}\\text{ m}`,
+          annotation: 'Exact maximum height confirming correct option',
+          speechScript: `Isse accurate maximum height ${maxHeight.toFixed(1)} meters aati hai.`,
+          chalkColor: 'emerald',
+          durationEstimateMs: 4000,
+        },
+      ],
+      graphNodes: [
+        { id: 'N1_PREMISE', type: 'SOUND_PREMISE', label: 'Projectile Givens', mathLatex: `u = ${u}\\text{m/s}, \\; \\theta = ${thetaDeg}^\\circ`, description: 'Identified launch speed and launch angle.', badge: 'SOUND PREMISE', audioScriptIndic: 'Projectile givens identified.', position: { x: 50, y: 180 } },
+        { id: 'N2_PIVOT', type: 'CRITICAL_PIVOT', label: 'Kinematic Decomposition', mathLatex: 'u \\text{ vs } u\\sin\\theta', description: 'Branch point: 1D total speed vs orthogonal vertical component.', badge: 'CRITICAL PIVOT', audioScriptIndic: 'Pivot: full velocity ya vertical component?', position: { x: 310, y: 180 } },
+        { id: 'N3_DERAILED', type: 'DERAILED_BRANCH', label: '1D Formula Fallacy', mathLatex: `H = u^2 / 2g = ${(u * u / (2 * g)).toFixed(1)}\\text{m}`, description: 'Used total velocity directly, ignoring 2D angle.', badge: 'DERAILED BRANCH', audioScriptIndic: 'Total velocity sidhe use ho gayi.', position: { x: 570, y: 70 } },
+        { id: 'N4_CONTRADICTION', type: 'DERAILED_BRANCH', label: 'Apex Contradiction', mathLatex: `v_x > 0 \\implies E_k \\neq 0`, description: 'At apex, horizontal kinetic energy is non-zero.', badge: 'CONTRADICTION', audioScriptIndic: 'Apex par energy balance contradict hua.', position: { x: 840, y: 70 } },
+        { id: 'N5_CANONICAL', type: 'CANONICAL_PATH', label: 'Vertical Apex Invariant', mathLatex: `u_y = ${uy.toFixed(1)}\\text{m/s}, \\; H = u_y^2 / 2g`, description: 'Enforce independent vertical acceleration.', badge: 'CANONICAL PATH', audioScriptIndic: 'Vertical component resolve kiya.', position: { x: 570, y: 310 } },
+        { id: 'N6_SOCRATIC', type: 'SOCRATIC_CHECKPOINT', label: `Max Height: ${maxHeight.toFixed(1)} m`, mathLatex: `H = ${maxHeight.toFixed(1)}\\text{ m}`, description: 'Validates accurate projectile maximum height.', badge: 'SOCRATIC CHECKPOINT', audioScriptIndic: 'Correct height verify kijiye.', position: { x: 840, y: 310 } },
+      ],
+      graphEdges: [
+        { id: 'e1', source: 'N1_PREMISE', target: 'N2_PIVOT', label: 'Givens Sound', status: 'valid', animated: false },
+        { id: 'e2', source: 'N2_PIVOT', target: 'N3_DERAILED', label: 'Ignore Angle', status: 'derailed', animated: true },
+        { id: 'e3', source: 'N3_DERAILED', target: 'N4_CONTRADICTION', label: 'Overestimate Height', status: 'derailed', animated: true },
+        { id: 'e4', source: 'N2_PIVOT', target: 'N5_CANONICAL', label: 'Resolve u_y', status: 'scaffold', animated: false },
+        { id: 'e5', source: 'N5_CANONICAL', target: 'N6_SOCRATIC', label: 'Height Verified', status: 'valid', animated: false },
+      ],
+    };
+  }
+
+  // 1C. 1D KINEMATICS & VERTICAL FREE FALL
+  if (
+    /\b(dropped|free fall|falling|tower|height|maximum height|initial velocity|final velocity|speed of|accelerat|m\/s|m\/s\^?2|ms\^-2|g\s*=\s*10|g\s*=\s*9\.8)\b/i.test(text) &&
+    !/\b(incline|wedge|circuit|derivative|integral)\b/i.test(text)
+  ) {
+    const hMatch = text.match(/\b(?:height|h|tower|cliff|distance|s)\s*=?\s*(\d+(?:\.\d+)?)\s*(?:m|meters?)?\b/i);
+    const uMatch = text.match(/\b(?:velocity|speed|u)\s*=?\s*(\d+(?:\.\d+)?)\s*(?:m\/s)?\b/i);
+    const gMatch = text.match(/\bg\s*=?\s*(\d+(?:\.\d+)?)\b/i);
+    const h = hMatch ? parseFloat(hMatch[1]) : 80;
+    const u = uMatch ? parseFloat(uMatch[1]) : 0;
+    const g = gMatch ? parseFloat(gMatch[1]) : 10;
+    const t = Math.sqrt((2 * h) / g);
+    const v = Math.sqrt(2 * g * h);
+
+    return {
+      domainId: 'physics_kinematics',
+      domainName: 'Physics: 1D Kinematics & Free Fall',
+      bloomLevel: 'Kinematic Modeling & Conservation Laws',
+      canonicalConcept: 'Galilean Free Fall Invariant: s = ut + 1/2 gt² and v² = u² + 2as',
+      rootMisconception: 'Conflating Acceleration with Velocity or Assuming Constant Linear Speed',
+      derailmentStep: 2,
+      derailmentReason: 'Assumed uniform speed without acceleration (t = h / v) or misidentified initial velocity u = 0 for a dropped object.',
+      socraticPrompt: 'When a stone is dropped from rest, what is its initial velocity u? Does gravity cause its velocity to change continuously during fall?',
+      hinglishPrompt: 'Jab kisi object ko drop kiya jata hai, toh initial velocity u = 0 hoti hai. Uniform acceleration g ke under time t = √(2h/g) kaise banta hai?',
+      boardSteps: [
+        {
+          stepIndex: 1,
+          title: 'Step 1: Free Fall Initial Conditions',
+          latexContent: `h = ${h}\\text{ m}, \\quad u = ${u}\\text{ m/s (from rest)}, \\quad g = ${g}\\text{ m/s}^2`,
+          annotation: 'Establish coordinate frame with downward displacement',
+          speechScript: `Pehle givens formulate karte hain: height ${h} meters, dropped from rest matlab u = ${u} m/s, aur gravity ${g} m/s².`,
+          chalkColor: 'emerald',
+          durationEstimateMs: 3800,
+        },
+        {
+          stepIndex: 2,
+          title: 'Step 2: Student Attempt (Constant Velocity Fallacy)',
+          latexContent: `\\text{Fallacy: } t = \\frac{h}{g} = \\frac{${h}}{${g}} = ${(h / g).toFixed(1)}\\text{ s} \\quad \\text{or omitted } \\frac{1}{2}`,
+          annotation: '⚠️ Critical Pivot: Conflated uniform speed with constant gravitational acceleration',
+          speechScript: `Step 2 par logic derail hua: aapne direct linear ratio le liya bina acceleration ke quadratic time term ke.`,
+          chalkColor: 'amber',
+          durationEstimateMs: 4400,
+        },
+        {
+          stepIndex: 3,
+          title: 'Step 3: Dimensional & Physical Contradiction',
+          latexContent: `[h/g] = \\frac{\\text{m}}{\\text{m/s}^2} = \\text{s}^2 \\neq \\text{s} \\implies \\text{Dimensionally Inconsistent}`,
+          annotation: 'Direct division yields seconds squared, violating dimensional homogeneity',
+          speechScript: 'Dimensional analysis dekhiye: h/g ka unit second squared aata hai, jo time ka unit nahi ho sakta.',
+          chalkColor: 'rose' as any,
+          durationEstimateMs: 4200,
+        },
+        {
+          stepIndex: 4,
+          title: 'Step 4: Canonical Second Equation of Motion',
+          latexContent: `h = ut + \\frac{1}{2}gt^2 = 0 + \\frac{1}{2}(${g})t^2 = ${(g / 2).toFixed(1)} t^2 \\implies t^2 = \\frac{2 \\times ${h}}{${g}} = ${(2 * h / g).toFixed(1)}`,
+          annotation: 'Integrate constant acceleration dv/dt = g over fall duration',
+          speechScript: `Canonical equation lagayein: h = ut + 1/2 gt². u = 0 hone par t = root(2h/g).`,
+          chalkColor: 'cyan',
+          durationEstimateMs: 4600,
+        },
+        {
+          stepIndex: 5,
+          title: 'Step 5: Verified Time & Impact Velocity Solution',
+          latexContent: `t = \\sqrt{${(2 * h / g).toFixed(1)}} = ${t.toFixed(2)}\\text{ s}, \\quad v = gt = ${v.toFixed(1)}\\text{ m/s}`,
+          annotation: 'Exact fall duration conforming to Newtonian kinematics',
+          speechScript: `Isse exact time ${t.toFixed(2)} seconds aur impact velocity ${v.toFixed(1)} m/s calculate hoti hai.`,
+          chalkColor: 'emerald',
+          durationEstimateMs: 4000,
+        },
+      ],
+      graphNodes: [
+        { id: 'N1_PREMISE', type: 'SOUND_PREMISE', label: 'Initial Boundary Givens', mathLatex: `h = ${h}\\text{m}, \\; u = 0, \\; g = ${g}\\text{m/s}^2`, description: 'Identified vertical drop parameters.', badge: 'SOUND PREMISE', audioScriptIndic: 'Free fall givens identified.', position: { x: 50, y: 180 } },
+        { id: 'N2_PIVOT', type: 'CRITICAL_PIVOT', label: 'Acceleration Invariant', mathLatex: 'a = g \\text{ vs } v = \\text{const}', description: 'Branch point: Constant velocity vs uniform gravitational acceleration.', badge: 'CRITICAL PIVOT', audioScriptIndic: 'Pivot: uniform speed ya constant acceleration?', position: { x: 310, y: 180 } },
+        { id: 'N3_DERAILED', type: 'DERAILED_BRANCH', label: 'Linear Time Fallacy', mathLatex: `t = h/g = ${(h / g).toFixed(1)}\\text{s}`, description: 'Dimensional and kinematic error.', badge: 'DERAILED BRANCH', audioScriptIndic: 'Linear ratio assume ho gaya.', position: { x: 570, y: 70 } },
+        { id: 'N4_CONTRADICTION', type: 'DERAILED_BRANCH', label: 'Unit Contradiction', mathLatex: `[h/g] = \\text{s}^2 \\neq \\text{s}`, description: 'Fails dimensional check.', badge: 'CONTRADICTION', audioScriptIndic: 'Unit contradiction create hui.', position: { x: 840, y: 70 } },
+        { id: 'N5_CANONICAL', type: 'CANONICAL_PATH', label: 'Newtonian Kinematic Equation', mathLatex: `h = \\frac{1}{2}gt^2 \\implies t = \\sqrt{2h/g}`, description: 'Quadratic displacement under gravity.', badge: 'CANONICAL PATH', audioScriptIndic: 'Kinematic equation apply ki.', position: { x: 570, y: 310 } },
+        { id: 'N6_SOCRATIC', type: 'SOCRATIC_CHECKPOINT', label: `Fall Time: ${t.toFixed(2)} s`, mathLatex: `t = ${t.toFixed(2)}\\text{ s}, \\; v = ${v.toFixed(1)}\\text{ m/s}`, description: 'Verified physical solution.', badge: 'SOCRATIC CHECKPOINT', audioScriptIndic: 'Fall duration verify kijiye.', position: { x: 840, y: 310 } },
+      ],
+      graphEdges: [
+        { id: 'e1', source: 'N1_PREMISE', target: 'N2_PIVOT', label: 'Givens Sound', status: 'valid', animated: false },
+        { id: 'e2', source: 'N2_PIVOT', target: 'N3_DERAILED', label: 'Linear Fallacy', status: 'derailed', animated: true },
+        { id: 'e3', source: 'N3_DERAILED', target: 'N4_CONTRADICTION', label: 'Unit Inconsistency', status: 'derailed', animated: true },
+        { id: 'e4', source: 'N2_PIVOT', target: 'N5_CANONICAL', label: 'Apply Kinematics', status: 'scaffold', animated: false },
+        { id: 'e5', source: 'N5_CANONICAL', target: 'N6_SOCRATIC', label: 'Time Verified', status: 'valid', animated: false },
+      ],
+    };
+  }
+
+  // 1D. INCLINED PLANE & WEDGE FORCES (Only if problem explicitly mentions incline or wedge)
+  if (
+    /\b(incline|inclined|wedge|slides down|sliding down)\b/i.test(text)
+  ) {
+    const massMatch = text.match(/(?:mass|m)\s*=?\s*(\d+(?:\.\d+)?)\s*(?:kg|g)?/i);
+    const angleMatch = text.match(/(?:θ|theta|angle|inclination)\s*=?\s*(\d+(?:\.\d+)?)(?:°|deg)?/i);
+    const muMatch = text.match(/(?:μ|mu|_s|_k)\s*=?\s*(\d+(?:\.\d+)?)/i);
+
+    const m = massMatch ? parseFloat(massMatch[1]) : 2;
+    const thetaDeg = angleMatch ? parseFloat(angleMatch[1]) : 30;
+    const mu = muMatch ? parseFloat(muMatch[1]) : 0.2;
+    const g = 9.8;
+
+    const thetaRad = (thetaDeg * Math.PI) / 180;
+    const sinT = Math.sin(thetaRad);
+    const cosT = Math.cos(thetaRad);
+
+    const mg = m * g;
+    const wParallel = mg * sinT;
+    const normalForce = mg * cosT;
+    const frictionForce = mu * normalForce;
+    const fNet = wParallel - frictionForce;
+    const acceleration = Math.max(0, fNet / m);
+
+    return {
+      domainId: 'physics_incline',
+      domainName: 'Physics: Inclined Plane & Friction Dynamics',
+      bloomLevel: 'Vector Statics & Dynamic System Modeling',
+      canonicalConcept: 'Newtonian Invariant: Normal Reaction Vector N = mg cos(θ) & Friction Invariant f_k = μ N',
+      rootMisconception: 'Assuming Flat Normal Force N = mg on an Inclined Plane or Omitting Surface Friction',
+      derailmentStep: 2,
+      derailmentReason: `Equated normal force to full gravitational weight (N = mg = ${mg.toFixed(2)} N) instead of wedge perpendicular component (N = mg cos(${thetaDeg}°) = ${normalForce.toFixed(2)} N).`,
+      socraticPrompt: `Look at the inclined plane in the figure: In which direction does the normal force act relative to the plane surface? Why does friction depend on mg cos(${thetaDeg}°) rather than mg?`,
+      hinglishPrompt: `Figure mein inclined plane ko dekhein: Normal force plane ke perpendicular lagti hai ya vertically? Frictional force f_k = μ mg cos(${thetaDeg}°) kyu lena zaroori hai?`,
+      boardSteps: [
+        {
+          stepIndex: 1,
+          title: 'Step 1: Figure Geometry & Free-Body Parameter Setup',
+          latexContent: `m = ${m}\\text{ kg}, \\quad \\theta = ${thetaDeg}^\\circ, \\quad \\mu = ${mu}, \\quad g = 9.8\\text{ m/s}^2 \\implies W = mg = ${mg.toFixed(2)}\\text{ N}`,
+          annotation: 'Resolve gravity into parallel and perpendicular components along wedge',
+          speechScript: `Pehle figure se parameters formulate karte hain: mass ${m} kg, incline angle ${thetaDeg} degrees, aur coefficient of friction ${mu}.`,
+          chalkColor: 'emerald',
+          durationEstimateMs: 4000,
+        },
+        {
+          stepIndex: 2,
+          title: 'Step 2: Student Attempt (Flat-Surface Normal Force Fallacy)',
+          latexContent: `\\text{Fallacy: } N = mg = ${mg.toFixed(2)}\\text{ N} \\implies f_k = \\mu mg = ${(mu * mg).toFixed(2)}\\text{ N} \\quad \\text{or } f_k = 0`,
+          annotation: '⚠️ Critical Pivot: Conflated horizontal ground with tilted plane coordinates',
+          speechScript: 'Step 2 par logic derail hua: aapne incline par bhi N ko mg ke barabar maan liya, jabki plane tilted hai.',
+          chalkColor: 'amber',
+          durationEstimateMs: 4400,
+        },
+        {
+          stepIndex: 3,
+          title: 'Step 3: Coordinate Vector Contradiction',
+          latexContent: `\\sum F_\\perp = N - mg\\cos(${thetaDeg}^\\circ) = 0 \\implies N = ${normalForce.toFixed(2)}\\text{ N} \\neq ${mg.toFixed(2)}\\text{ N}`,
+          annotation: 'Perpendicular equilibrium strictly dictates N = mg cos(θ)',
+          speechScript: `Plane ke perpendicular koi motion nahi hai, isliye normal reaction strictly mg cos(${thetaDeg} degrees) = ${normalForce.toFixed(2)} N hona chahiye.`,
+          chalkColor: 'rose' as any,
+          durationEstimateMs: 4200,
+        },
+        {
+          stepIndex: 4,
+          title: 'Step 4: Canonical Scaffolding: Net Force Along Incline',
+          latexContent: `f_k = \\mu N = (${mu})(${normalForce.toFixed(2)}) = ${frictionForce.toFixed(2)}\\text{ N}, \\quad F_{\\parallel} = mg\\sin(${thetaDeg}^\\circ) = ${wParallel.toFixed(2)}\\text{ N}`,
+          annotation: 'Subtract kinetic friction opposing downward sliding',
+          speechScript: `Canonical method: downward gravitational component ${wParallel.toFixed(2)} N mein se friction ${frictionForce.toFixed(2)} N subtract karein.`,
+          chalkColor: 'cyan',
+          durationEstimateMs: 4600,
+        },
+        {
+          stepIndex: 5,
+          title: 'Step 5: Verified Acceleration Solution',
+          latexContent: `a = \\frac{F_{\\text{net}}}{m} = g(\\sin ${thetaDeg}^\\circ - \\mu\\cos ${thetaDeg}^\\circ) = ${acceleration.toFixed(2)}\\text{ m/s}^2`,
+          annotation: 'Exact physical acceleration matching empirical physics key',
+          speechScript: `Isse accurate acceleration ${acceleration.toFixed(2)} meter per second squared calculate hoti hai.`,
+          chalkColor: 'emerald',
+          durationEstimateMs: 4200,
+        },
+      ],
+      graphNodes: [
+        { id: 'N1_PREMISE', type: 'SOUND_PREMISE', label: 'Step 1: System Parameters', mathLatex: `m = ${m}\\text{kg}, \\; \\theta = ${thetaDeg}^\\circ, \\; \\mu = ${mu}`, description: 'Extracted givens and geometry from diagram.', badge: 'SOUND PREMISE', audioScriptIndic: 'System givens and figure geometry identified.', position: { x: 50, y: 180 } },
+        { id: 'N2_PIVOT', type: 'CRITICAL_PIVOT', label: 'Step 2: Normal Force Vector', mathLatex: `N = mg\\cos\\theta \\text{ vs } N = mg`, description: 'Branch point: Tilted wedge vs horizontal plane assumption.', badge: 'CRITICAL PIVOT', audioScriptIndic: 'Pivot: normal reaction parallel ya tilted coordinate?', position: { x: 310, y: 180 } },
+        { id: 'N3_DERAILED', type: 'DERAILED_BRANCH', label: 'Step 3: Flat Plane Fallacy', mathLatex: `N = mg \\implies f_k = \\mu mg`, description: 'Overestimated normal reaction and friction.', badge: 'DERAILED BRANCH', audioScriptIndic: 'Normal force coordinate galat assume ho gayi.', position: { x: 570, y: 70 } },
+        { id: 'N4_CONTRADICTION', type: 'DERAILED_BRANCH', label: 'Step 4: Option Contradiction', mathLatex: `a_{\\text{err}} \\neq ${acceleration.toFixed(2)}\\text{ m/s}^2`, description: 'Produces invalid acceleration rejecting correct MCQ option.', badge: 'CONTRADICTION', audioScriptIndic: 'Calculated value MCQ options se mismatch hui.', position: { x: 840, y: 70 } },
+        { id: 'N5_CANONICAL', type: 'CANONICAL_PATH', label: 'Canonical Step 3: Inclined FBD', mathLatex: `f_k = \\mu mg\\cos\\theta = ${frictionForce.toFixed(2)}\\text{N}`, description: 'Resolve orthogonal coordinate equilibrium.', badge: 'CANONICAL PATH', audioScriptIndic: 'Inclined coordinate frame mein exact friction mili.', position: { x: 570, y: 310 } },
+        { id: 'N6_SOCRATIC', type: 'SOCRATIC_CHECKPOINT', label: `Socratic Checkpoint: ${acceleration.toFixed(2)} m/s²`, mathLatex: `a = g(\\sin\\theta - \\mu\\cos\\theta) = ${acceleration.toFixed(2)}`, description: 'Connects to correct multiple-choice option.', badge: 'SOCRATIC CHECKPOINT', audioScriptIndic: 'MCQ option verify kijiye.', position: { x: 840, y: 310 } },
+      ],
+      graphEdges: [
+        { id: 'e1', source: 'N1_PREMISE', target: 'N2_PIVOT', label: 'FBD Sound', status: 'valid', animated: false },
+        { id: 'e2', source: 'N2_PIVOT', target: 'N3_DERAILED', label: 'Assume N = mg', status: 'derailed', animated: true },
+        { id: 'e3', source: 'N3_DERAILED', target: 'N4_CONTRADICTION', label: 'Option Mismatch', status: 'derailed', animated: true },
+        { id: 'e4', source: 'N2_PIVOT', target: 'N5_CANONICAL', label: 'N = mg cos(θ)', status: 'scaffold', animated: false },
+        { id: 'e5', source: 'N5_CANONICAL', target: 'N6_SOCRATIC', label: 'Option Verified', status: 'valid', animated: false },
+      ],
+    };
+  }
+
+  // 2. MATHEMATICS & CALCULUS
   if (
     ['derivative', 'integral', 'calculus', 'differentiat', 'chain rule', 'implicit', 'dx', 'dy/dx', 'limit', 'matrix', 'eigenvalue', 'vector space', 'polynomial', 'f(x)', 'f\'(x)', 'समाकलन', 'अवकलन'].some((k) => text.includes(k)) ||
     /\b(calc|deriv|integ|limits|taylor)\b/.test(text)
@@ -456,10 +1139,9 @@ export function detectUniversalDomain(problem: string, steps: string = '', break
     };
   }
 
-  // 6. LAW, GOVERNANCE & CONSTITUTIONAL CIVICS
+  // 7. LAW, GOVERNANCE & CONSTITUTIONAL CIVICS (Strict domain boundary to avoid matching "Newton's law", "flawed", or "article of mass m")
   if (
-    ['law', 'legal', 'article 19', 'constitution', 'statute', 'court', 'fundamental right', 'speech', 'restriction', 'proportionality', 'public order', 'mens rea', 'jurisprudence', 'अधिकार', 'संविधान', 'विधि'].some((k) => text.includes(k)) ||
-    /\b(article|statutory|tort|contract|liability)\b/.test(text)
+    /\b(article 19|constitution|constitutional law|statute|jurisprudence|fundamental right|freedom of speech|proportionality test|public order|mens rea|tort law|criminal law|legal doctrine|statutory provision|अधिकार|संविधान|विधि)\b/i.test(text)
   ) {
     return {
       domainId: 'law_governance',
@@ -856,86 +1538,6 @@ export function detectUniversalDomain(problem: string, steps: string = '', break
     };
   }
 
-  // 11. CLASSICAL MECHANICS & PHYSICS
-  if (
-    ['physics', 'friction', 'incline', 'work-energy', 'spring', 'kinetic energy', 'potential energy', 'newton', 'force', 'acceleration', 'velocity', 'momentum', 'भौतिक', 'यांत्रिकी'].some((k) => text.includes(k)) ||
-    /\b(mgh|1\/2 mv\^2|mu_s|fbd|conservation of energy)\b/.test(text)
-  ) {
-    return {
-      domainId: 'physics_mechanics',
-      domainName: 'Classical Physics & Mechanics',
-      bloomLevel: 'Physical System Modeling & Conservation Laws',
-      canonicalConcept: 'Work-Energy Theorem with Non-Conservative Path Integrals',
-      rootMisconception: 'Assuming Strict Mechanical Energy Conservation in Non-Conservative Systems',
-      derailmentStep: 2,
-      derailmentReason: 'Equated initial mechanical energy directly to final state without accounting for dissipative heat loss from friction W_nc = -μ N d.',
-      socraticPrompt: 'Does friction conserve mechanical energy, or does it convert mechanical energy into irreversible thermal dissipation? How does the Work-Energy Theorem account for W_nc?',
-      hinglishPrompt: 'Track par friction hone se kya mechanical energy conserved rahegi ya heat mein lose hogi? Work-Energy Theorem mein W_nc kahan add hoga?',
-      boardSteps: [
-        {
-          stepIndex: 1,
-          title: 'Step 1: Initial System Energy State Formulation',
-          latexContent: 'E_i = mgh, \\quad \\text{System: Block + Incline + Earth + Spring}',
-          annotation: 'Initial gravitational potential energy',
-          speechScript: 'Pehle initial mechanical energy identify karte hain: top par block ke paas mgh energy hai.',
-          chalkColor: 'emerald',
-          durationEstimateMs: 3800,
-        },
-        {
-          stepIndex: 2,
-          title: 'Step 2: Student Attempt (Frictionless Conservation Fallacy)',
-          latexContent: '\\text{Assumption: } E_i = E_f \\implies mgh = \\frac{1}{2} k x^2 \\quad \\text{(Omitted } W_{\\text{friction}} \\text{)}',
-          annotation: '⚠️ Critical Pivot: Conflated isolated conservative system with dissipative reality',
-          speechScript: 'Step 2 par logic derail hua: aapne friction work ko subtract kiye bina mgh ko 1/2 k x squared se equate kar diya.',
-          chalkColor: 'amber',
-          durationEstimateMs: 4400,
-        },
-        {
-          stepIndex: 3,
-          title: 'Step 3: Thermal Dissipation Counterexample',
-          latexContent: 'W_{\\text{friction}} = -\\mu m g \\cos(\\theta) \\cdot d < 0 \\implies E_{\\text{remaining}} < mgh',
-          annotation: 'Non-conservative path integral dissipates mechanical energy into heat',
-          speechScript: 'Friction negative work karta hai, jisse mechanical energy heat mein convert ho jati hai.',
-          chalkColor: 'rose' as any,
-          durationEstimateMs: 4200,
-        },
-        {
-          stepIndex: 4,
-          title: 'Step 4: Canonical Scaffolding: Work-Energy Theorem',
-          latexContent: 'W_{\\text{net, ext}} = \\Delta K + \\Delta U \\implies E_i + W_{\\text{nc}} = \\frac{1}{2} k x^2',
-          annotation: 'Enforce non-conservative work balance',
-          speechScript: 'Canonical theorem: Initial energy mein se friction loss subtract karein, tab actual compression milegi.',
-          chalkColor: 'cyan',
-          durationEstimateMs: 4600,
-        },
-        {
-          stepIndex: 5,
-          title: 'Step 5: Empirically Consistent Compression Solution',
-          latexContent: 'x = \\sqrt{\\frac{2(mgh - \\mu m g \\cos(\\theta) d)}{k}}',
-          annotation: 'Valid physical compression matching experimental reality',
-          speechScript: 'Isse accurate compression calculate hoti hai jo answer key se perfectly match karegi.',
-          chalkColor: 'emerald',
-          durationEstimateMs: 3600,
-        },
-      ],
-      graphNodes: [
-        { id: 'N1_PREMISE', type: 'SOUND_PREMISE', label: 'Step 1: Energy Inputs', mathLatex: 'E_i = mgh', description: 'Identified baseline height and mass.', badge: 'SOUND PREMISE', audioScriptIndic: 'Initial potential energy accurately identified.', position: { x: 50, y: 180 } },
-        { id: 'N2_PIVOT', type: 'CRITICAL_PIVOT', label: 'Step 2: Conservative System Check', mathLatex: '\\Delta E_{\\text{mech}} = 0 \\text{ vs } W_{\\text{nc}}', description: 'Branch point: Conservative assumption vs dissipative friction.', badge: 'CRITICAL PIVOT', audioScriptIndic: 'Pivot: energy conserved ya friction dissipation?', position: { x: 310, y: 180 } },
-        { id: 'N3_DERAILED', type: 'DERAILED_BRANCH', label: 'Step 3: Neglected Friction Work', mathLatex: 'mgh = \\frac{1}{2}kx^2', description: 'Overlooked thermal dissipation.', badge: 'DERAILED BRANCH', audioScriptIndic: 'Friction heat loss ignore ho gaya.', position: { x: 570, y: 70 } },
-        { id: 'N4_CONTRADICTION', type: 'DERAILED_BRANCH', label: 'Step 4: Gross Overestimation', mathLatex: 'x_{\\text{calc}} \\gg x_{\\text{actual}}', description: 'Calculated compression exceeds physical limit.', badge: 'CONTRADICTION', audioScriptIndic: 'Compression grossly overestimate hui.', position: { x: 840, y: 70 } },
-        { id: 'N5_CANONICAL', type: 'CANONICAL_PATH', label: 'Canonical Step 3: Work-Energy Theorem', mathLatex: 'E_i - f_k d = E_f', description: 'Subtract non-conservative work.', badge: 'CANONICAL PATH', audioScriptIndic: 'Work-energy theorem se correct balance mila.', position: { x: 570, y: 310 } },
-        { id: 'N6_SOCRATIC', type: 'SOCRATIC_CHECKPOINT', label: 'Socratic Checkpoint: Friction Vector', mathLatex: 'W_{\\text{nc}} = \\int \\vec{f} \\cdot d\\vec{r}', description: 'Why is friction work always negative along the displacement?', badge: 'SOCRATIC CHECKPOINT', audioScriptIndic: 'Friction vector direction verify kijiye.', position: { x: 840, y: 310 } },
-      ],
-      graphEdges: [
-        { id: 'e1', source: 'N1_PREMISE', target: 'N2_PIVOT', label: 'Energy Sound', status: 'valid', animated: false },
-        { id: 'e2', source: 'N2_PIVOT', target: 'N3_DERAILED', label: 'Ignore Friction', status: 'derailed', animated: true },
-        { id: 'e3', source: 'N3_DERAILED', target: 'N4_CONTRADICTION', label: 'Overestimate', status: 'derailed', animated: true },
-        { id: 'e4', source: 'N2_PIVOT', target: 'N5_CANONICAL', label: 'Subtract W_friction', status: 'scaffold', animated: false },
-        { id: 'e5', source: 'N5_CANONICAL', target: 'N6_SOCRATIC', label: 'Dissipation Invariant', status: 'valid', animated: false },
-      ],
-    };
-  }
-
   // 12. UNIVERSAL / CUSTOM ACADEMIC INQUIRY (Dynamic Synthesis for ANY topic)
   const cleanSummary = problem.slice(0, 90).replace(/[^\w\s\-,.]/g, '').trim() || 'Custom Invariant Analysis';
 
@@ -1022,31 +1624,40 @@ export function diagnoseDoubtSemantic(
   studentSteps: string,
   studentBreakdown: string = '',
   outputLangName: string = 'Hinglish (हिंग्लिश)',
-  studentName: string = 'Learner'
+  studentName: string = 'Learner',
+  customDomain?: DomainProfile | null
 ): DiagnosisResult {
-  const domain = detectUniversalDomain(doubt, studentSteps, studentBreakdown);
+  const domain = customDomain || detectUniversalDomain(doubt, studentSteps, studentBreakdown);
 
   // Multilingual Spoken Script Generation (Detailed Masterclass Pedagogical Narration)
-  let narrationScript = '';
-  if (outputLangName.includes('Hindi') || outputLangName.includes('हिंदी')) {
-    narrationScript = `नमस्ते! आइए आपके इस प्रश्न को गहराई से समझें। प्रारंभिक चरण में आपकी समस्या की पहचान और प्रारंभिक शर्तें बिल्कुल सही थीं। परंतु दूसरे चरण पर आपका तर्क विचलित हो गया: ${domain.derailmentReason}। यहाँ मुख्य वैचारिक भ्रांति यह है: ${domain.rootMisconception}। ${domain.domainName} में यह अनिवार्य है कि हम आधारभूत नियम '${domain.canonicalConcept}' को लागू करें। यदि इस नियम की अनदेखी की जाए, तो पूरा समाधान अमान्य हो जाता है। समाधान के लिए ब्लैकबोर्ड पर दिए गए पिवट नोड को देखें: पहले बुनियादी संरक्षण नियम लागू करें, फिर अंतिम समाधान तक पहुँचें। अब आप विचार करें: ${domain.socraticPrompt}। अपना उत्तर नीचे दिए गए बॉक्स में अवश्य लिखें!`;
-  } else if (outputLangName.includes('Hinglish') || outputLangName.includes('हिंग्लिश')) {
-    narrationScript = `Hello! Aaiye aapke is doubt ko step-by-step detail mein samajhte hain. Shuruat mein aapka problem setup aur starting premise bilkul sound tha. Lekin Step 2 par aate hi aapka reasoning derail hua: ${domain.derailmentReason}. Yahan par root misconception yeh hai: ${domain.rootMisconception}. Dhyan rahe ki ${domain.domainName} mein localized intuition apply karne ke bajaye governing invariant ${domain.canonicalConcept} ko strictly follow karna zaroori hai. Agar is invariant ko neglect karenge, to contradictory result aayega. Blackboard par green Pivot Node ko dekhiye jahan canonical first principles ko restore kiya gaya hai. Ab aap khud reflect karein: ${domain.hinglishPrompt || domain.socraticPrompt}. Niche reflection box mein apna jawab zaroor submit karein!`;
-  } else {
-    narrationScript = `Welcome! Let us examine your problem and reasoning step-by-step in detail. In the first step, your starting premise and problem formulation were completely sound. However, at Step 2, your derivation experienced a critical divergence: ${domain.derailmentReason}. The underlying conceptual misconception here is: ${domain.rootMisconception}. In ${domain.domainName}, you must strictly enforce the governing principle: ${domain.canonicalConcept}. If you omit this invariant, the system reaches an empirical contradiction. To resolve this, look at the Pivot Node on the digital chalkboard where we restore the fundamental invariant first, then verify the boundary conditions. Now reflect on this: ${domain.socraticPrompt}. Type or dictate your self-correction in the box below!`;
+  let narrationScript = domain.narrationScript || '';
+  if (!narrationScript) {
+    if (outputLangName.includes('Hindi') || outputLangName.includes('हिंदी')) {
+      narrationScript = `नमस्ते! आइए आपके इस प्रश्न को गहराई से समझें। प्रारंभिक चरण में आपकी समस्या की पहचान और प्रारंभिक शर्तें बिल्कुल सही थीं। परंतु दूसरे चरण पर आपका तर्क विचलित हो गया: ${domain.derailmentReason}। यहाँ मुख्य वैचारिक भ्रांति यह है: ${domain.rootMisconception}। ${domain.domainName} में यह अनिवार्य है कि हम आधारभूत नियम '${domain.canonicalConcept}' को लागू करें। यदि इस नियम की अनदेखी की जाए, तो पूरा समाधान अमान्य हो जाता है। समाधान के लिए ब्लैकबोर्ड पर दिए गए पिवट नोड को देखें: पहले बुनियादी संरक्षण नियम लागू करें, फिर अंतिम समाधान तक पहुँचें। अब आप विचार करें: ${domain.socraticPrompt}। अपना उत्तर नीचे दिए गए बॉक्स में अवश्य लिखें!`;
+    } else if (outputLangName.includes('Hinglish') || outputLangName.includes('हिंग्लिश')) {
+      narrationScript = `Hello! Aaiye aapke is doubt ko step-by-step detail mein samajhte hain. Shuruat mein aapka problem setup aur starting premise bilkul sound tha. Lekin Step 2 par aate hi aapka reasoning derail hua: ${domain.derailmentReason}. Yahan par root misconception yeh hai: ${domain.rootMisconception}. Dhyan rahe ki ${domain.domainName} mein localized intuition apply karne ke bajaye governing invariant ${domain.canonicalConcept} ko strictly follow karna zaroori hai. Agar is invariant ko neglect karenge, to contradictory result aayega. Blackboard par green Pivot Node ko dekhiye jahan canonical first principles ko restore kiya gaya hai. Ab aap khud reflect karein: ${domain.hinglishPrompt || domain.socraticPrompt}. Niche reflection box mein apna jawab zaroor submit karein!`;
+    } else {
+      narrationScript = `Welcome! Let us examine your problem and reasoning step-by-step in detail. In the first step, your starting premise and problem formulation were completely sound. However, at Step 2, your derivation experienced a critical divergence: ${domain.derailmentReason}. The underlying conceptual misconception here is: ${domain.rootMisconception}. In ${domain.domainName}, you must strictly enforce the governing principle: ${domain.canonicalConcept}. If you omit this invariant, the system reaches an empirical contradiction. To resolve this, look at the Pivot Node on the digital chalkboard where we restore the fundamental invariant first, then verify the boundary conditions. Now reflect on this: ${domain.socraticPrompt}. Type or dictate your self-correction in the box below!`;
+    }
   }
 
   const rawSteps = studentSteps.split('\n').filter((s) => s.trim().length > 0);
+  const n0 = domain.graphNodes?.[0];
+  const n1 = domain.graphNodes?.[1];
+  const n2 = domain.graphNodes?.[2];
+  const n4 = domain.graphNodes?.[4];
+  const n5 = domain.graphNodes?.[5];
+
   const studentNodes = [
-    { id: 'S1', label: rawSteps[0] || 'Initial Premise Formulation', is_error: false, detail: 'Correct baseline setup and premise identification' },
-    { id: 'S2', label: rawSteps[1] || 'Applied Rule Without Invariant', is_error: true, detail: `Derailment: ${domain.derailmentReason}` },
-    { id: 'S3', label: rawSteps[2] || 'Unverified Conclusion Reached', is_error: true, detail: 'Conclusion contradicts system boundary constraints' },
+    { id: 'S1', label: rawSteps[0] || n0?.label || 'Initial Premise Formulation', is_error: false, detail: n0?.description || 'Correct baseline setup and premise identification' },
+    { id: 'S2', label: rawSteps[1] || n1?.label || 'Applied Rule Without Invariant', is_error: true, detail: `Derailment: ${domain.derailmentReason}` },
+    { id: 'S3', label: rawSteps[2] || n2?.label || 'Unverified Conclusion Reached', is_error: true, detail: 'Conclusion contradicts system boundary constraints' },
   ];
 
   const remediationNodes = [
-    { id: 'R1', label: 'Establish System Boundaries', is_pivot: false, detail: 'Define foundational conservation constraints' },
-    { id: 'R2', label: '💡 PIVOT: Enforce Invariant Law', is_pivot: true, detail: domain.canonicalConcept },
-    { id: 'R3', label: 'Canonical Solution Path', is_pivot: false, detail: 'Valid derivation matching empirical conditions' },
+    { id: 'R1', label: n0?.label || 'Establish System Boundaries', is_pivot: false, detail: 'Define foundational conservation constraints' },
+    { id: 'R2', label: n4?.label || '💡 PIVOT: Enforce Invariant Law', is_pivot: true, detail: domain.canonicalConcept },
+    { id: 'R3', label: n5?.label || 'Canonical Solution Path', is_pivot: false, detail: 'Valid derivation matching empirical conditions' },
   ];
 
   const storyboard = {

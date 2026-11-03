@@ -27,6 +27,13 @@ export const SocraticSection: React.FC<SocraticSectionProps> = ({
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isResolved, setIsResolved] = useState<boolean | null>(null);
 
+  // Reset student reply & feedback when problem diagnosis changes
+  React.useEffect(() => {
+    setReplyText('');
+    setFeedback(null);
+    setIsResolved(null);
+  }, [diagnosis?.canonical_concept]);
+
   if (!diagnosis) return null;
 
   const handleSubmit = async () => {

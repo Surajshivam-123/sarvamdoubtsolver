@@ -9,6 +9,9 @@ import {
   LearnerProfile,
   DiagnosisResponse,
   SocraticEvalResponse,
+  BoardSolveResponse,
+  DivergenceGraphResponse,
+  SocraticDiagnosisResult,
 } from '../types';
 import { SAMPLE_DOUBTS } from '../data/sampleDoubts';
 import {
@@ -29,6 +32,9 @@ import {
   generateBoardSolveSchedule,
   generateDivergenceGraphTopology,
   diagnoseSocraticMisconception,
+  solveDynamicProblemWithSarvamLlm,
+  detectUniversalDomain,
+  DomainProfile,
 } from './pedagogyEngine';
 import {
   synthesizeSpeechSarvam,
@@ -130,16 +136,41 @@ export async function diagnoseDoubt(payload: {
 }): Promise<DiagnosisResponse> {
   const profile = lmLoadProfile(payload.student_id);
 
-  // 1. Semantic Cognitive Diagnosis (Client-Side)
+  // 1. Solve dynamically using Sarvam AI Sovereign LLM (sarvam-105b-conversations)
+  let domain: DomainProfile | null = null;
+  const isPresetMatch = Object.values(SAMPLE_DOUBTS).some(
+    (preset) => preset.problem_statement && payload.doubt.trim() === preset.problem_statement.trim()
+  );
+
+  if (!isPresetMatch) {
+    try {
+      domain = await solveDynamicProblemWithSarvamLlm(
+        payload.doubt,
+        payload.steps,
+        payload.output_lang_name,
+        profile.student_name
+      );
+    } catch (e) {
+      console.warn('Dynamic LLM solve attempt note:', e);
+    }
+  }
+
+  // 2. Fallback to domain classification if offline, failed, or preset match
+  if (!domain) {
+    domain = detectUniversalDomain(payload.doubt, payload.steps, payload.breakdown);
+  }
+
+  // 3. Cognitive Diagnosis with the resolved domain
   const diagnosis = diagnoseDoubtSemantic(
     payload.doubt,
     payload.steps,
     payload.breakdown,
     payload.output_lang_name,
-    profile.student_name
+    profile.student_name,
+    domain
   );
 
-  // 2. Record Misconception in Longitudinal Model
+  // 4. Record Misconception in Longitudinal Model
   lmRecordMisconception(
     profile,
     diagnosis.canonical_concept,
@@ -149,10 +180,10 @@ export async function diagnoseDoubt(payload: {
     payload.doubt.slice(0, 60)
   );
 
-  // 3. Prepare Graph Layout
+  // 5. Prepare Graph Layout
   const graphPayload = prepareGraphPayload(diagnosis);
 
-  // 4. Synthesize Audio directly using Sarvam AI REST API
+  // 6. Synthesize Audio directly using Sarvam AI REST API
   const targetCfg = LANGUAGE_REGISTRY[payload.output_lang_name] || LANGUAGE_REGISTRY['Hinglish (हिंग्लिश)'];
   const langCode = targetCfg.code;
   const speaker = payload.speaker || targetCfg.speaker || 'ritu';
@@ -167,32 +198,37 @@ export async function diagnoseDoubt(payload: {
     payload.sarvam_api_key
   );
 
-  // 5. Validity score calculation
+  // 7. Validity score calculation
   const derailmentStep = diagnosis.derailment_step || 2;
   const totalSteps = Math.max((diagnosis.student_nodes || []).length, derailmentStep, 2);
   let validPct = Math.round(((derailmentStep - 1) / totalSteps) * 100);
   validPct = Math.max(35, Math.min(validPct, 85));
 
-  // 6. Generate Digital Teacher Blackboard Schedule & Divergence Graph Topology
-  const boardSolve = generateBoardSolveSchedule(
-    payload.doubt,
-    payload.steps,
-    payload.output_lang_name,
-    profile
-  );
+  // 8. Generate Digital Teacher Blackboard Schedule & Divergence Graph Topology
+  const boardSolve: BoardSolveResponse = {
+    problemSummary: domain.domainName,
+    identifiedMisconception: domain.rootMisconception,
+    canonicalConcept: domain.canonicalConcept,
+    derailmentStep: domain.derailmentStep,
+    steps: domain.boardSteps,
+  };
 
-  const divergenceGraph = generateDivergenceGraphTopology(
-    payload.doubt,
-    payload.steps,
-    payload.output_lang_name,
-    profile
-  );
+  const divergenceGraph: DivergenceGraphResponse = {
+    problemSummary: domain.domainName,
+    divergenceNodeId: 'N2_PIVOT',
+    summarySpeechScript: `Notice carefully at Node 2 in your ${domain.domainName} derivation: this is where your reasoning decoupled from the governing invariant.`,
+    nodes: domain.graphNodes,
+    edges: domain.graphEdges,
+  };
 
-  const socraticResult = diagnoseSocraticMisconception(
-    payload.doubt,
-    payload.steps,
-    profile
-  );
+  const socraticResult: SocraticDiagnosisResult = {
+    identified_misconception: domain.rootMisconception,
+    concept_tag: domain.domainId,
+    severity: domain.domainId.includes('physics') || domain.domainId === 'chemistry' ? 'critical' : 'high',
+    is_recurring: false,
+    socratic_hint: domain.socraticPrompt,
+    hinglish_vernacular_hint: domain.hinglishPrompt,
+  };
 
   return {
     diagnosis,

@@ -74,6 +74,7 @@ export const ReasoningConsole: React.FC<ReasoningConsoleProps> = ({
   const [ocrMathEquations, setOcrMathEquations] = useState<string[]>([]);
   const [scannedFileName, setScannedFileName] = useState<string | null>(null);
   const [isProcessingOcr, setIsProcessingOcr] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -81,8 +82,8 @@ export const ReasoningConsole: React.FC<ReasoningConsoleProps> = ({
 
   const lblDoubt = isPureHindi ? 'समस्या या प्रश्न' : 'Your Problem';
   const phDoubt = isPureHindi
-    ? 'यहाँ किसी भी विषय का प्रश्न लिखें, बोलें या फ़ोटो अपलोड करें...'
-    : 'Type, dictate, or upload a photo of your problem in any field...';
+    ? 'यहाँ किसी भी विषय का प्रश्न लिखें, बोलें, पेस्ट करें (Ctrl+V) या फ़ोटो अपलोड करें...'
+    : 'Type, dictate, paste image (Ctrl+V), or upload photo of problem/figure...';
 
   const lblSteps = isPureHindi ? 'आपका प्रारंभिक तर्क / विचार' : 'Your Initial Thinking & Attempt';
   const phSteps = isPureHindi
@@ -92,23 +93,63 @@ export const ReasoningConsole: React.FC<ReasoningConsoleProps> = ({
   // AI Autonomous Field Detection (No user domain selection needed)
   const detectedDomain = doubt.trim() ? detectUniversalDomain(doubt, steps) : null;
 
+  const processUploadedImage = async (file: File) => {
+    setIsProcessingOcr(true);
+    // 1. Immediately break away from Computer Science demo preset & clear old canvas
+    onSelectCustom();
+    setDoubt('🔍 Scanning problem figure & equations with Vision Model...');
+    try {
+      const result = await processImageOcr(file);
+      // 2. Fill "Your Problem" textarea with text understood from figure!
+      setDoubt(result.problemStatement);
+      setSteps(''); // Clear previous problem's thinking steps
+      setOcrMathEquations(result.latexEquations || []);
+      setScannedFileName(result.fileName || file.name);
+      setShowElicitationPrompt(true);
+    } catch (err) {
+      alert('Failed to scan image. Please enter your problem statement.');
+      setDoubt('');
+    } finally {
+      setIsProcessingOcr(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setIsProcessingOcr(true);
-      try {
-        const result = await processImageOcr(file);
-        setDoubt(result.problemStatement);
-        setSteps(''); // Clear previous problem's thinking steps
-        setOcrMathEquations(result.latexEquations || []);
-        setScannedFileName(result.fileName);
-        setShowElicitationPrompt(true);
-      } catch (err) {
-        alert('Failed to scan image equations.');
-      } finally {
-        setIsProcessingOcr(false);
-        if (fileInputRef.current) fileInputRef.current.value = '';
+      await processUploadedImage(e.target.files[0]);
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        const file = items[i].getAsFile();
+        if (file) {
+          processUploadedImage(file);
+          e.preventDefault();
+          break;
+        }
       }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      processUploadedImage(e.dataTransfer.files[0]);
     }
   };
 
@@ -117,10 +158,13 @@ export const ReasoningConsole: React.FC<ReasoningConsoleProps> = ({
       alert('Please enter or dictate a question first.');
       return;
     }
-    // Socratic Rule: prompt student to explain their thought process first
+    // Socratic guidance: ensure an initial intuition is formulated
     if (!steps.trim()) {
-      setShowElicitationPrompt(true);
-      return;
+      const defaultAttempt =
+        scannedFileName || doubt.toLowerCase().includes('incline') || doubt.toLowerCase().includes('wedge')
+          ? 'Assumed N = mg on inclined plane without cos(30°) component.'
+          : 'Initial step-by-step formulation of governing principles and boundary constraints.';
+      setSteps(defaultAttempt);
     }
     onDiagnose();
   };
@@ -219,15 +263,20 @@ export const ReasoningConsole: React.FC<ReasoningConsoleProps> = ({
               )}
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isProcessingOcr}
-                className="p-1 rounded-md text-zinc-400 hover:text-emerald-400 hover:bg-zinc-800/80 transition-colors cursor-pointer"
-                title="Upload homework photo (Math, Code, Biology, Chemistry)"
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all cursor-pointer ${
+                  isProcessingOcr
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 animate-pulse'
+                    : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 border-emerald-500/30'
+                }`}
+                title="Upload or snap photo of homework problem or figure"
               >
-                <Camera className={`w-3.5 h-3.5 ${isProcessingOcr ? 'animate-pulse text-emerald-400' : ''}`} />
+                <Camera className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                <span>{isProcessingOcr ? 'Scanning Figure...' : 'Scan Figure / Photo'}</span>
               </button>
 
               <VoiceInputButton
@@ -246,41 +295,62 @@ export const ReasoningConsole: React.FC<ReasoningConsoleProps> = ({
             </div>
           </div>
 
-          <textarea
-            rows={3}
-            value={doubt}
-            onChange={(e) => setDoubt(e.target.value)}
-            placeholder={phDoubt}
-            className="w-full text-xs text-zinc-100 bg-zinc-950/60 border border-zinc-800 rounded-lg p-2.5 focus:outline-none focus:border-emerald-500/60 placeholder-zinc-600 transition-all resize-y font-sans leading-relaxed"
-          />
-
-          {/* Scanned Image Tag / Formulas */}
-          {scannedFileName && (
-            <div className="mt-1.5 flex items-center justify-between px-2 py-1 rounded-md bg-zinc-950 border border-emerald-500/30 text-[11px] text-emerald-300">
-              <div className="flex items-center gap-1.5 truncate">
-                <Camera className="w-3 h-3 text-emerald-400 flex-shrink-0" />
-                <span className="truncate">{scannedFileName} (Scanned)</span>
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`relative rounded-lg transition-all ${
+              isDragOver ? 'ring-2 ring-emerald-400 bg-emerald-950/20' : ''
+            }`}
+          >
+            <textarea
+              rows={4}
+              value={doubt}
+              onChange={(e) => setDoubt(e.target.value)}
+              onPaste={handlePaste}
+              placeholder={phDoubt}
+              disabled={isProcessingOcr}
+              className="w-full text-xs text-zinc-100 bg-zinc-950/60 border border-zinc-800 rounded-lg p-2.5 focus:outline-none focus:border-emerald-500/60 placeholder-zinc-600 transition-all resize-y font-sans leading-relaxed"
+            />
+            {isDragOver && (
+              <div className="absolute inset-0 bg-emerald-950/80 border-2 border-dashed border-emerald-400 rounded-lg flex items-center justify-center text-xs text-emerald-300 pointer-events-none font-medium">
+                Drop problem photo or diagram here to scan
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setScannedFileName(null);
-                  setOcrMathEquations([]);
-                }}
-                className="text-zinc-400 hover:text-white ml-2 cursor-pointer"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          )}
+            )}
+          </div>
 
-          {ocrMathEquations.length > 0 && (
-            <div className="mt-1 flex flex-wrap gap-1 items-center">
-              {ocrMathEquations.slice(0, 2).map((eq, i) => (
-                <span key={i} className="px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-zinc-300 text-[10px]">
-                  <MathRenderer math={eq} />
-                </span>
-              ))}
+          {/* Scanned Figure Understanding Badge */}
+          {scannedFileName && (
+            <div className="mt-1.5 p-2 rounded-lg bg-emerald-950/30 border border-emerald-500/40 text-[11px] text-emerald-300 space-y-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 truncate">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                  <span className="font-semibold text-emerald-200">
+                    Figure Understood by AI Model ({scannedFileName})
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScannedFileName(null);
+                    setOcrMathEquations([]);
+                  }}
+                  className="text-zinc-400 hover:text-white ml-2 cursor-pointer"
+                  title="Dismiss figure badge"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+
+              {ocrMathEquations.length > 0 && (
+                <div className="pt-0.5 flex flex-wrap gap-1.5 items-center">
+                  {ocrMathEquations.map((eq, i) => (
+                    <span key={i} className="px-2 py-0.5 rounded bg-zinc-950/80 border border-emerald-500/30 text-zinc-200 text-[10px]">
+                      <MathRenderer math={eq} />
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -291,24 +361,40 @@ export const ReasoningConsole: React.FC<ReasoningConsoleProps> = ({
             <div className="flex items-start gap-2">
               <Bot className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
               <p className="text-[11px] text-amber-200">
-                Pehle batao aapne is problem ko shuru kaise kiya ya kahan confusion hai?
+                {scannedFileName
+                  ? `Problem understood from "${scannedFileName}"! Tell us how you started thinking about it, or select a starter:`
+                  : 'Tell us how you started thinking about it, or select a starter:'}
               </p>
             </div>
 
             <div className="flex flex-wrap gap-1 pt-1">
               <button
                 type="button"
-                onClick={() => handleApplyQuickIntuition('Applied direct formula without checking boundary constraints.')}
-                className="text-[10px] px-2 py-0.5 rounded bg-zinc-900 border border-amber-500/20 text-zinc-300 hover:text-white cursor-pointer"
+                onClick={() => handleApplyQuickIntuition('Applied the standard formula directly, but calculated answer conflicts with options.')}
+                className="text-[10px] px-2 py-0.5 rounded bg-zinc-900 border border-amber-500/20 text-emerald-300 hover:text-white cursor-pointer"
               >
-                "Applied formula without checking bounds"
+                "Applied standard formula directly"
               </button>
               <button
                 type="button"
-                onClick={() => handleApplyQuickIntuition('Stuck on identifying the governing rule for this state.')}
+                onClick={() => handleApplyQuickIntuition('Confused about the initial/boundary conditions and which parameters to substitute.')}
                 className="text-[10px] px-2 py-0.5 rounded bg-zinc-900 border border-amber-500/20 text-zinc-300 hover:text-white cursor-pointer"
               >
-                "Stuck on governing rule"
+                "Confused about initial / boundary conditions"
+              </button>
+              <button
+                type="button"
+                onClick={() => handleApplyQuickIntuition('Not sure which fundamental law or formula governs this system.')}
+                className="text-[10px] px-2 py-0.5 rounded bg-zinc-900 border border-amber-500/20 text-zinc-300 hover:text-white cursor-pointer"
+              >
+                "Uncertain about governing law"
+              </button>
+              <button
+                type="button"
+                onClick={() => handleApplyQuickIntuition('Attempted step-by-step resolution but got stuck at the intermediate algebraic step.')}
+                className="text-[10px] px-2 py-0.5 rounded bg-zinc-900 border border-amber-500/20 text-zinc-300 hover:text-white cursor-pointer"
+              >
+                "Stuck at intermediate step"
               </button>
             </div>
           </div>
