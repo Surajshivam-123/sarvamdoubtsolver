@@ -397,14 +397,40 @@ export async function transcribeAudioSarvam(
   }
 
   try {
-    const mimeType = audioBlob.type || 'audio/webm';
+    // Sanitize MIME type against Sarvam's strict whitelist:
+    // Browser MediaRecorder emits 'audio/webm;codecs=opus', which must be cleaned to 'audio/webm'
+    const rawType = (audioBlob.type || '').split(';')[0].trim().toLowerCase();
+    let cleanMimeType = 'audio/webm';
     let filename = 'student_voice_input.webm';
-    if (mimeType.includes('wav')) filename = 'student_voice_input.wav';
-    else if (mimeType.includes('mp4') || mimeType.includes('m4a')) filename = 'student_voice_input.mp4';
-    else if (mimeType.includes('ogg')) filename = 'student_voice_input.ogg';
+
+    if (rawType.includes('wav')) {
+      cleanMimeType = 'audio/wav';
+      filename = 'student_voice_input.wav';
+    } else if (rawType.includes('mp4') || rawType.includes('m4a')) {
+      cleanMimeType = 'audio/mp4';
+      filename = 'student_voice_input.mp4';
+    } else if (rawType.includes('ogg')) {
+      cleanMimeType = 'audio/ogg';
+      filename = 'student_voice_input.ogg';
+    } else if (rawType.includes('opus')) {
+      cleanMimeType = 'audio/opus';
+      filename = 'student_voice_input.opus';
+    } else if (rawType.includes('mp3') || rawType.includes('mpeg')) {
+      cleanMimeType = 'audio/mp3';
+      filename = 'student_voice_input.mp3';
+    } else if (rawType.includes('aac')) {
+      cleanMimeType = 'audio/aac';
+      filename = 'student_voice_input.aac';
+    } else {
+      cleanMimeType = 'audio/webm';
+      filename = 'student_voice_input.webm';
+    }
+
+    // Wrap Blob with normalized MIME type so the multipart Content-Type header matches Sarvam's whitelist
+    const uploadBlob = audioBlob.type === cleanMimeType ? audioBlob : new Blob([audioBlob], { type: cleanMimeType });
 
     const formData = new FormData();
-    formData.append('file', audioBlob, filename);
+    formData.append('file', uploadBlob, filename);
     formData.append('model', 'saaras:v4');
 
     // 'unknown' enables Sarvam's automatic language detection across all 23 languages

@@ -79,8 +79,10 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
           alert('Recording was too short or empty. Please speak clearly into your microphone.');
           return;
         }
-        const finalMime = mediaRecorder.mimeType || selectedMimeType || 'audio/webm';
-        const audioBlob = new Blob(audioChunksRef.current, { type: finalMime });
+        const rawMime = mediaRecorder.mimeType || selectedMimeType || 'audio/webm';
+        // Strip codec parameters (e.g. 'audio/webm;codecs=opus' -> 'audio/webm') for API compliance
+        const cleanMime = rawMime.split(';')[0].trim().toLowerCase() || 'audio/webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: cleanMime });
         await handleTranscribe(audioBlob);
       };
 

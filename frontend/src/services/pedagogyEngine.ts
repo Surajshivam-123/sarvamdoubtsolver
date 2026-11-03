@@ -275,12 +275,12 @@ Output strictly valid JSON with keys:
     } : undefined;
 
     const nodePositions: Record<string, { x: number; y: number }> = {
-      N1_PREMISE: { x: 50, y: 180 },
-      N2_PIVOT: { x: 310, y: 180 },
-      N3_DERAILED: { x: 570, y: 70 },
-      N4_CONTRADICTION: { x: 840, y: 70 },
-      N5_CANONICAL: { x: 570, y: 310 },
-      N6_SOCRATIC: { x: 840, y: 310 },
+      N1_PREMISE: { x: 50, y: 220 },
+      N2_PIVOT: { x: 420, y: 220 },
+      N3_DERAILED: { x: 790, y: 60 },
+      N4_CONTRADICTION: { x: 1160, y: 60 },
+      N5_CANONICAL: { x: 790, y: 380 },
+      N6_SOCRATIC: { x: 1160, y: 380 },
     };
 
     let graphNodes: GraphNode[] = [];
@@ -297,7 +297,7 @@ Output strictly valid JSON with keys:
             description: n,
             badge: id.replace('_', ' '),
             audioScriptIndic: n,
-            position: nodePositions[id] || { x: 50 + idx * 150, y: 180 },
+            position: nodePositions[id] || { x: 50 + idx * 370, y: 220 },
           };
         }
         return {
@@ -308,20 +308,20 @@ Output strictly valid JSON with keys:
           description: n.description || '',
           badge: n.badge || (id === 'N1_PREMISE' ? 'SOUND PREMISE' : id === 'N2_PIVOT' ? 'CRITICAL PIVOT' : id.includes('DERAILED') ? 'DERAILED BRANCH' : id.includes('CONTRADICTION') ? 'CONTRADICTION' : id.includes('CANONICAL') ? 'CANONICAL PATH' : 'SOCRATIC CHECKPOINT'),
           audioScriptIndic: n.audioScriptIndic || n.description || '',
-          position: nodePositions[id] || { x: 50 + idx * 150, y: 180 },
+          position: nodePositions[id] || { x: 50 + idx * 370, y: 220 },
         };
       });
     } else {
       const cConcept = zoneBMindMap?.branch_2_interim || parsed.canonical_concept || 'Governing First Principles';
       const rMis = parsed.root_misconception || 'Unverified Assumption';
       const dReason = parsed.derailment_reason || 'Reasoning diverged at pivot';
-      const targetState = zoneBMindMap?.branch_3_target || boardSteps[4]?.latexContent || 'Target State';
+      const targetState = zoneBMindMap?.branch_3_target || boardSteps[4]?.latexContent || '\\text{Target Solution Verified}';
       graphNodes = [
-        { id: 'N1_PREMISE', type: 'SOUND_PREMISE', label: zoneBMindMap ? 'Branch 1: Givens' : (boardSteps[0]?.title || 'Step 1: System Givens'), mathLatex: zoneBMindMap?.branch_1_givens || boardSteps[0]?.latexContent || '', description: 'Initial parameters and boundary conditions.', badge: 'SOUND PREMISE', audioScriptIndic: 'System initial conditions established.', position: nodePositions['N1_PREMISE'] },
-        { id: 'N2_PIVOT', type: 'CRITICAL_PIVOT', label: zoneBMindMap ? `Root: ${zoneBMindMap.root_topic.slice(0, 24)}` : (boardSteps[1]?.title || 'Step 2: Governing Decision'), mathLatex: 'First Principles vs Local Intuition', description: 'Branch point where canonical principle diverges from misconception.', badge: 'CRITICAL PIVOT', audioScriptIndic: 'Critical decision point in derivation.', position: nodePositions['N2_PIVOT'] },
-        { id: 'N3_DERAILED', type: 'DERAILED_BRANCH', label: `Derailed: ${rMis.slice(0, 30)}`, mathLatex: dReason.slice(0, 40), description: rMis, badge: 'DERAILED BRANCH', audioScriptIndic: 'Cognitive misconception occurred.', position: nodePositions['N3_DERAILED'] },
-        { id: 'N4_CONTRADICTION', type: 'DERAILED_BRANCH', label: 'Option Inconsistency', mathLatex: 'Result \\neq Options', description: 'Produces conflicting result contradicting system boundaries.', badge: 'CONTRADICTION', audioScriptIndic: 'Contradiction with valid physics options.', position: nodePositions['N4_CONTRADICTION'] },
-        { id: 'N5_CANONICAL', type: 'CANONICAL_PATH', label: zoneBMindMap ? 'Branch 2: Interim Formulas' : `Canonical: ${cConcept.slice(0, 30)}`, mathLatex: boardSteps[3]?.latexContent || boardSteps[2]?.latexContent || '', description: cConcept, badge: 'CANONICAL PATH', audioScriptIndic: 'Governing first principles invariant restored.', position: nodePositions['N5_CANONICAL'] },
+        { id: 'N1_PREMISE', type: 'SOUND_PREMISE', label: zoneBMindMap ? 'Branch 1: Givens' : (boardSteps[0]?.title || 'Step 1: System Givens'), mathLatex: boardSteps[0]?.latexContent || '', description: zoneBMindMap?.branch_1_givens || 'Initial parameters and boundary conditions.', badge: 'SOUND PREMISE', audioScriptIndic: 'System initial conditions established.', position: nodePositions['N1_PREMISE'] },
+        { id: 'N2_PIVOT', type: 'CRITICAL_PIVOT', label: zoneBMindMap ? `Root: ${zoneBMindMap.root_topic.slice(0, 24)}` : (boardSteps[1]?.title || 'Step 2: Governing Decision'), mathLatex: '\\text{Canonical Principle} \\;\\leftrightarrow\\; \\text{Intuition}', description: 'Branch point where canonical principle diverges from misconception.', badge: 'CRITICAL PIVOT', audioScriptIndic: 'Critical decision point in derivation.', position: nodePositions['N2_PIVOT'] },
+        { id: 'N3_DERAILED', type: 'DERAILED_BRANCH', label: `Derailed: ${rMis.slice(0, 26)}`, mathLatex: '\\Delta \\mathcal{E}_{\\text{flaw}} \\neq 0', description: dReason || rMis, badge: 'DERAILED BRANCH', audioScriptIndic: 'Cognitive misconception occurred.', position: nodePositions['N3_DERAILED'] },
+        { id: 'N4_CONTRADICTION', type: 'DERAILED_BRANCH', label: 'Option Inconsistency', mathLatex: '\\text{Result} \\neq \\text{Valid Options}', description: 'Produces conflicting result contradicting system boundaries.', badge: 'CONTRADICTION', audioScriptIndic: 'Contradiction with valid physics options.', position: nodePositions['N4_CONTRADICTION'] },
+        { id: 'N5_CANONICAL', type: 'CANONICAL_PATH', label: zoneBMindMap ? 'Branch 2: Interim Formulas' : `Canonical: ${cConcept.slice(0, 26)}`, mathLatex: boardSteps[3]?.latexContent || boardSteps[2]?.latexContent || '\\text{First Principles Invariant}', description: cConcept, badge: 'CANONICAL PATH', audioScriptIndic: 'Governing first principles invariant restored.', position: nodePositions['N5_CANONICAL'] },
         { id: 'N6_SOCRATIC', type: 'SOCRATIC_CHECKPOINT', label: zoneBMindMap ? 'Branch 3: Target State' : (boardSteps[4]?.title || 'Step 5: Verified Solution'), mathLatex: targetState, description: 'Verified target answer matching correct option.', badge: 'SOCRATIC CHECKPOINT', audioScriptIndic: 'Correct answer and self-correction checkpoint.', position: nodePositions['N6_SOCRATIC'] },
       ];
     }

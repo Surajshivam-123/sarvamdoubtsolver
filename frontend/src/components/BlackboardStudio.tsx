@@ -205,9 +205,42 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
     setIsDragging(false);
   };
 
+  // Spacious, normalized layout ensuring generous breathing room between nodes and edges
+  const CARD_WIDTH = 270;
+  const CARD_HEIGHT = 130;
+
+  const normalizedNodes = React.useMemo(() => {
+    if (!divergenceGraph?.nodes || divergenceGraph.nodes.length === 0) return [];
+
+    // Position map for the canonical 6-node divergence topology with ample horizontal and vertical separation
+    const standardPositions: Record<string, { x: number; y: number }> = {
+      N1_PREMISE: { x: 50, y: 220 },
+      N2_PIVOT: { x: 420, y: 220 },
+      N3_DERAILED: { x: 790, y: 60 },
+      N4_CONTRADICTION: { x: 1160, y: 60 },
+      N5_CANONICAL: { x: 790, y: 380 },
+      N6_SOCRATIC: { x: 1160, y: 380 },
+    };
+
+    return divergenceGraph.nodes.map((n) => {
+      let pos = standardPositions[n.id];
+      if (!pos) {
+        // Expand coordinates if nodes are packed too tightly
+        const colIdx = n.position.x < 150 ? 0 : n.position.x < 450 ? 1 : n.position.x < 700 ? 2 : 3;
+        const colX = 50 + colIdx * 370;
+        const rowY = n.position.y < 130 ? 60 : n.position.y > 250 ? 380 : 220;
+        pos = { x: colX, y: rowY };
+      }
+      return {
+        ...n,
+        position: pos,
+      };
+    });
+  }, [divergenceGraph?.nodes]);
+
   // Align and Center Divergence Graph smoothly on spacebar or button
   const alignGraph = useCallback(() => {
-    const nodes = divergenceGraph?.nodes || [];
+    const nodes = normalizedNodes;
     if (!containerRef.current || nodes.length === 0) {
       setPan({ x: 0, y: 0 });
       setScale(1);
@@ -218,9 +251,6 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
     const containerW = rect.width || 800;
     const containerH = rect.height || 640;
 
-    const nodeWidth = 230;
-    const nodeHeight = 110;
-
     let minX = Infinity;
     let maxX = -Infinity;
     let minY = Infinity;
@@ -228,9 +258,9 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
 
     for (const n of nodes) {
       if (n.position.x < minX) minX = n.position.x;
-      if (n.position.x + nodeWidth > maxX) maxX = n.position.x + nodeWidth;
+      if (n.position.x + CARD_WIDTH > maxX) maxX = n.position.x + CARD_WIDTH;
       if (n.position.y < minY) minY = n.position.y;
-      if (n.position.y + nodeHeight > maxY) maxY = n.position.y + nodeHeight;
+      if (n.position.y + CARD_HEIGHT > maxY) maxY = n.position.y + CARD_HEIGHT;
     }
 
     const graphW = maxX - minX;
@@ -242,7 +272,7 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
 
     const scaleX = (containerW - paddingX * 2) / (graphW || 1);
     const scaleY = (containerH - paddingTop - paddingBottom) / (graphH || 1);
-    const optimalScale = Math.min(Math.max(Math.min(scaleX, scaleY), 0.55), 1.05);
+    const optimalScale = Math.min(Math.max(Math.min(scaleX, scaleY), 0.45), 1.0);
 
     const graphCenterX = minX + graphW / 2;
     const graphCenterY = minY + graphH / 2;
@@ -252,7 +282,7 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
 
     setScale(optimalScale);
     setPan({ x: targetPanX, y: targetPanY });
-  }, [divergenceGraph]);
+  }, [normalizedNodes]);
 
   // Global spacebar listener to align graph
   useEffect(() => {
@@ -695,16 +725,20 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
               </marker>
             </defs>
 
-            {/* Render Divergence Edges */}
+            {/* Render Divergence Edges with Spacious Geometry */}
             {divergenceEdges.map((edge) => {
-              const srcNode = divergenceNodes.find((n) => n.id === edge.source);
-              const tgtNode = divergenceNodes.find((n) => n.id === edge.target);
+              const srcNode = normalizedNodes.find((n) => n.id === edge.source);
+              const tgtNode = normalizedNodes.find((n) => n.id === edge.target);
               if (!srcNode || !tgtNode) return null;
 
-              const x1 = srcNode.position.x + 110;
-              const y1 = srcNode.position.y + 40;
+              // Originates cleanly from the right edge of the source card
+              const x1 = srcNode.position.x + CARD_WIDTH;
+              const y1 = srcNode.position.y + 60; // vertical center of source card
+
+              // Connects cleanly into the left edge of the target card
               const x2 = tgtNode.position.x;
-              const y2 = tgtNode.position.y + 40;
+              const y2 = tgtNode.position.y + 60; // vertical center of target card
+
               const dx = Math.abs(x2 - x1) * 0.5;
               const pathD = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
 
@@ -720,6 +754,11 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
                 marker = 'url(#arrowCyan)';
               }
 
+              const midX = (x1 + x2) / 2;
+              const midY = (y1 + y2) / 2;
+              const badgeW = 105;
+              const badgeH = 24;
+
               return (
                 <g key={edge.id}>
                   <path
@@ -733,16 +772,16 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
                   />
                   {edge.label && (
                     <foreignObject
-                      x={(x1 + x2) / 2 - 55}
-                      y={(y1 + y2) / 2 - 12}
-                      width={120}
-                      height={28}
+                      x={midX - badgeW / 2}
+                      y={midY - badgeH / 2}
+                      width={badgeW}
+                      height={badgeH}
                     >
                       <div
-                        className={`text-[9px] font-semibold px-2 py-0.5 rounded-full text-center border backdrop-blur-md shadow-md ${
+                        className={`text-[9px] font-semibold px-2 py-0.5 rounded-full text-center border backdrop-blur-md shadow-md truncate ${
                           isDerailed
-                            ? 'bg-red-950/80 text-red-300 border-red-500/30'
-                            : 'bg-emerald-950/80 text-emerald-300 border-emerald-500/30'
+                            ? 'bg-red-950/90 text-red-300 border-red-500/40'
+                            : 'bg-emerald-950/90 text-emerald-300 border-emerald-500/40'
                         }`}
                       >
                         {edge.label}
@@ -754,27 +793,27 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
             })}
           </svg>
 
-          {/* Render Divergence Nodes */}
+          {/* Render Divergence Nodes with Uncompressed Breathing Room */}
           <div className="absolute inset-0 pointer-events-auto">
-            {divergenceNodes.map((node) => {
-              let borderStyle = 'border-emerald-500/40 bg-zinc-900/85';
+            {normalizedNodes.map((node) => {
+              let borderStyle = 'border-emerald-500/40 bg-zinc-900/90';
               let badgeBg = 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
               let glowClass = 'glow-emerald';
 
               if (node.type === 'CRITICAL_PIVOT') {
-                borderStyle = 'border-amber-500/50 bg-zinc-900/90';
+                borderStyle = 'border-amber-500/50 bg-zinc-900/95';
                 badgeBg = 'bg-amber-500/15 text-amber-300 border-amber-500/40';
                 glowClass = 'glow-amber';
               } else if (node.type === 'DERAILED_BRANCH') {
-                borderStyle = 'border-red-500/50 border-dashed bg-zinc-900/85';
+                borderStyle = 'border-red-500/50 border-dashed bg-zinc-900/90';
                 badgeBg = 'bg-red-500/15 text-red-300 border-red-500/30';
                 glowClass = 'glow-crimson';
               } else if (node.type === 'CANONICAL_PATH') {
-                borderStyle = 'border-cyan-500/40 bg-zinc-900/85';
+                borderStyle = 'border-cyan-500/40 bg-zinc-900/90';
                 badgeBg = 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30';
                 glowClass = '';
               } else if (node.type === 'SOCRATIC_CHECKPOINT') {
-                borderStyle = 'border-violet-500/40 bg-zinc-900/85';
+                borderStyle = 'border-violet-500/40 bg-zinc-900/90';
                 badgeBg = 'bg-violet-500/15 text-violet-300 border-violet-500/30';
                 glowClass = 'glow-violet';
               }
@@ -786,37 +825,39 @@ export const BlackboardStudio: React.FC<BlackboardStudioProps> = ({
                   style={{
                     left: `${node.position.x}px`,
                     top: `${node.position.y}px`,
-                    width: '240px',
-                    minHeight: '90px',
+                    width: `${CARD_WIDTH}px`,
+                    minHeight: `${CARD_HEIGHT}px`,
                   }}
-                  className={`node-card absolute p-3 rounded-xl border backdrop-blur-md shadow-xl transition-all duration-200 ease-out cursor-pointer hover:scale-[1.02] active:scale-[0.99] overflow-hidden ${borderStyle} ${glowClass}`}
+                  className={`node-card absolute p-3.5 rounded-xl border backdrop-blur-md shadow-xl transition-all duration-200 ease-out cursor-pointer hover:scale-[1.02] active:scale-[0.99] flex flex-col justify-between ${borderStyle} ${glowClass}`}
                 >
-                  <div className="flex items-center justify-between gap-1 mb-1.5">
-                    <span className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md border truncate ${badgeBg}`}>
-                      {node.badge || node.type}
-                    </span>
-                    {node.type === 'CRITICAL_PIVOT' && (
-                      <Lightbulb className="w-3.5 h-3.5 text-amber-400 animate-pulse flex-shrink-0" />
-                    )}
-                    {node.type === 'DERAILED_BRANCH' && (
-                      <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
-                    )}
-                    {node.type === 'SOCRATIC_CHECKPOINT' && (
-                      <Sparkles className="w-3.5 h-3.5 text-violet-400 flex-shrink-0" />
+                  <div>
+                    <div className="flex items-center justify-between gap-1 mb-1.5">
+                      <span className={`text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md border truncate ${badgeBg}`}>
+                        {node.badge || node.type}
+                      </span>
+                      {node.type === 'CRITICAL_PIVOT' && (
+                        <Lightbulb className="w-3.5 h-3.5 text-amber-400 animate-pulse flex-shrink-0" />
+                      )}
+                      {node.type === 'DERAILED_BRANCH' && (
+                        <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
+                      )}
+                      {node.type === 'SOCRATIC_CHECKPOINT' && (
+                        <Sparkles className="w-3.5 h-3.5 text-violet-400 flex-shrink-0" />
+                      )}
+                    </div>
+
+                    <h4 className="text-xs font-semibold text-zinc-100 leading-snug line-clamp-2 mb-1.5">
+                      {node.label}
+                    </h4>
+
+                    {node.mathLatex && (
+                      <div className="my-1.5 px-2 py-1 rounded-lg bg-zinc-950/70 border border-zinc-800/70 text-emerald-300 text-xs overflow-x-auto max-w-full scrollbar-none text-center">
+                        <MathRenderer math={node.mathLatex} />
+                      </div>
                     )}
                   </div>
 
-                  <h4 className="text-xs font-semibold text-zinc-100 leading-snug line-clamp-2 mb-1">
-                    {node.label}
-                  </h4>
-
-                  {node.mathLatex && (
-                    <div className="my-1 text-emerald-300 text-xs overflow-x-auto max-w-full scrollbar-none">
-                      <MathRenderer math={node.mathLatex} />
-                    </div>
-                  )}
-
-                  <p className="text-[11px] text-zinc-400 line-clamp-2 leading-relaxed font-sans overflow-hidden break-words">
+                  <p className="text-[11px] text-zinc-400 line-clamp-3 leading-relaxed font-sans overflow-hidden break-words mt-1">
                     {node.description}
                   </p>
                 </div>
