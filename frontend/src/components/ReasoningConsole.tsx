@@ -286,8 +286,8 @@ export const ReasoningConsole: React.FC<ReasoningConsoleProps> = ({
                     setDoubt(doubt ? `${doubt} ${txt}` : txt);
                   }
                 }}
-                languageCode={outputLang.includes('Hindi') ? 'hi-IN' : 'en-IN'}
-                title="Dictate problem statement via Sarvam Saaras ASR"
+                languageCode="unknown"
+                title="Dictate problem statement in any language via Sarvam Saaras ASR"
               />
             </div>
           </div>
@@ -418,8 +418,8 @@ export const ReasoningConsole: React.FC<ReasoningConsoleProps> = ({
 
             <VoiceInputButton
               onTranscriptionComplete={(txt) => setSteps(steps ? `${steps}\n${txt}` : txt)}
-              languageCode={outputLang.includes('Hindi') ? 'hi-IN' : 'en-IN'}
-              title="Speak your intuition via Sarvam Saaras ASR"
+              languageCode="unknown"
+              title="Speak your intuition in any language via Sarvam Saaras ASR"
             />
           </div>
 

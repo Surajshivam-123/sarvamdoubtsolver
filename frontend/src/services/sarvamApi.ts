@@ -379,65 +379,80 @@ export async function synthesizeSpeechSarvam(
 
 /**
  * Speech-to-Text via Sarvam Saaras ASR API
- * Transcribes student voice input across Indic languages and mixed code-switched Hinglish.
+ * Transcribes student voice input across Indic languages, English, and mixed code-switched Hinglish.
  */
 export async function transcribeAudioSarvam(
   audioBlob: Blob,
-  targetLanguageCode: string = 'hi-IN',
+  targetLanguageCode: string = 'unknown',
   apiKey?: string
 ): Promise<{ text: string; languageCode: string; statusMsg: string }> {
   const effectiveKey = (apiKey && apiKey.trim()) || getStoredApiKey();
 
-  if (effectiveKey) {
-    try {
-      const formData = new FormData();
-      formData.append('file', audioBlob, 'student_voice_input.wav');
-      formData.append('model', 'saaras:v2');
-      if (targetLanguageCode) {
-        formData.append('language_code', targetLanguageCode);
-      }
-
-      const res = await fetch(SARVAM_ASR_URL, {
-        method: 'POST',
-        headers: {
-          'api-subscription-key': effectiveKey,
-        },
-        body: formData,
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.transcript) {
-          return {
-            text: data.transcript,
-            languageCode: data.language_code || targetLanguageCode,
-            statusMsg: `✓ Transcribed via Sarvam Saaras (${data.language_code || targetLanguageCode})`,
-          };
-        }
-      } else {
-        const err = await res.json().catch(() => ({}));
-        console.warn('Sarvam ASR error response:', err);
-      }
-    } catch (e) {
-      console.warn('Sarvam ASR network call failed:', e);
-    }
+  if (!effectiveKey) {
+    return {
+      text: '',
+      languageCode: targetLanguageCode || 'en-IN',
+      statusMsg: '⚠️ Sarvam API Key missing. Please configure your API key in Settings to use Voice Input.',
+    };
   }
 
-  // Client-side voice transcription fallback:
-  // Returns intelligent vernacular speech approximation for immediate student experience
-  const fallbackTranscripts = [
-    'Maine normal force ko mg ke barabar maan liya, lekin incline angle 30 degree ka cosine component lena bhool gaya.',
-    'I assumed that balanced parentheses only needs a counter increment on open and decrement on close, but mismatched types like ([)] broke my logic.',
-    'Is question mein friction force consider karte waqt maine normal force seedha mg le li, jabki plane inclined tha.',
-    'Maine socha ki rent control price ceiling lagane se consumer surplus direct increase ho jayega, but deadweight loss ignore ho gaya.',
-  ];
-  const selectedTranscript = fallbackTranscripts[Math.floor(Math.random() * fallbackTranscripts.length)];
+  try {
+    const mimeType = audioBlob.type || 'audio/webm';
+    let filename = 'student_voice_input.webm';
+    if (mimeType.includes('wav')) filename = 'student_voice_input.wav';
+    else if (mimeType.includes('mp4') || mimeType.includes('m4a')) filename = 'student_voice_input.mp4';
+    else if (mimeType.includes('ogg')) filename = 'student_voice_input.ogg';
 
-  return {
-    text: selectedTranscript,
-    languageCode: targetLanguageCode || 'hi-IN',
-    statusMsg: '✓ Transcribed voice recording (Simulated Indic Speech Recognition)',
-  };
+    const formData = new FormData();
+    formData.append('file', audioBlob, filename);
+    formData.append('model', 'saaras:v4');
+
+    // 'unknown' enables Sarvam's automatic language detection across all 23 languages
+    const langCode = targetLanguageCode && targetLanguageCode !== 'auto' ? targetLanguageCode : 'unknown';
+    formData.append('language_code', langCode);
+
+    const res = await fetch(SARVAM_ASR_URL, {
+      method: 'POST',
+      headers: {
+        'api-subscription-key': effectiveKey,
+      },
+      body: formData,
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const transcript = (data.transcript || '').trim();
+      if (transcript) {
+        return {
+          text: transcript,
+          languageCode: data.language_code || langCode,
+          statusMsg: `✓ Transcribed via Sarvam Saaras (${data.language_code || langCode})`,
+        };
+      } else {
+        return {
+          text: '',
+          languageCode: data.language_code || langCode,
+          statusMsg: '⚠️ No audible speech detected in recording. Please try speaking closer to the microphone.',
+        };
+      }
+    } else {
+      const err = await res.json().catch(() => ({}));
+      const errMsg = err?.error?.message || err?.message || `HTTP ${res.status}`;
+      console.warn('Sarvam ASR error response:', err);
+      return {
+        text: '',
+        languageCode: langCode,
+        statusMsg: `⚠️ Voice transcription error: ${errMsg}`,
+      };
+    }
+  } catch (e: any) {
+    console.warn('Sarvam ASR network call failed:', e);
+    return {
+      text: '',
+      languageCode: targetLanguageCode || 'en-IN',
+      statusMsg: `⚠️ Network error connecting to Sarvam ASR: ${e?.message || e}`,
+    };
+  }
 }
 
 /**

@@ -11,7 +11,7 @@ interface VoiceInputButtonProps {
 
 export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
   onTranscriptionComplete,
-  languageCode = 'hi-IN',
+  languageCode = 'unknown',
   className = '',
   title = 'Speak your doubt in Indic or Hinglish',
 }) => {
@@ -38,8 +38,32 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
         return;
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      // Enhanced audio capture constraints for crisp speech separation
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+
+      // Probe browser supported audio container/codecs
+      let selectedMimeType = '';
+      const candidateMimeTypes = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/mp4',
+      ];
+      for (const mt of candidateMimeTypes) {
+        if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(mt)) {
+          selectedMimeType = mt;
+          break;
+        }
+      }
+
+      const recorderOptions = selectedMimeType ? { mimeType: selectedMimeType } : undefined;
+      const mediaRecorder = recorderOptions ? new MediaRecorder(stream, recorderOptions) : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (e) => {
@@ -50,7 +74,13 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
 
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach((track) => track.stop());
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        const totalBytes = audioChunksRef.current.reduce((acc, chunk) => acc + chunk.size, 0);
+        if (totalBytes < 500) {
+          alert('Recording was too short or empty. Please speak clearly into your microphone.');
+          return;
+        }
+        const finalMime = mediaRecorder.mimeType || selectedMimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: finalMime });
         await handleTranscribe(audioBlob);
       };
 
@@ -83,9 +113,12 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
       const res = await transcribeStudentVoice(blob, languageCode);
       if (res.text) {
         onTranscriptionComplete(res.text);
+      } else if (res.statusMsg) {
+        alert(res.statusMsg);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Transcription error:', err);
+      alert('Voice transcription error: ' + (err?.message || 'Failed to transcribe audio.'));
     } finally {
       setIsTranscribing(false);
     }
