@@ -12,8 +12,19 @@ Enforces:
 
 import json
 import re
+import importlib
 from typing import Dict, List, Any, Optional, Tuple
+import sample_doubts
 from sample_doubts import SAMPLE_DOUBTS
+
+
+def get_sample_doubt_entry(key: Optional[str]) -> Optional[Dict[str, Any]]:
+    """Safe getter that reloads sample_doubts if key is missing (stale module cache on cloud hot-reload)."""
+    if not key:
+        return None
+    if key not in sample_doubts.SAMPLE_DOUBTS:
+        importlib.reload(sample_doubts)
+    return sample_doubts.SAMPLE_DOUBTS.get(key)
 
 
 def clean_label(text: str, max_chars_per_line: int = 32) -> str:
@@ -346,15 +357,15 @@ def diagnose_doubt_semantic(
     elif any(k in doubt_lower for k in ["haber", "catalyst", "le chatelier", "nh3"]):
         matched_key = "chemistry_le_chatelier_catalyst"
 
-    if matched_key and matched_key in SAMPLE_DOUBTS:
-        sample = SAMPLE_DOUBTS[matched_key]
-        student_nodes = sample["student_nodes"]
-        remediation_nodes = sample["remediation_nodes"]
-        derailment_step = sample["derailment_step"]
-        root_misconception = sample["canonical_root_misconception"]
-        canonical_concept = sample["canonical_concept"]
-        derailment_reason = sample["derailment_reason"]
-        socratic_prompt = sample["socratic_prompt"]
+    sample = get_sample_doubt_entry(matched_key)
+    if sample:
+        student_nodes = sample.get("student_nodes", [])
+        remediation_nodes = sample.get("remediation_nodes", [])
+        derailment_step = sample.get("derailment_step", 2)
+        root_misconception = sample.get("canonical_root_misconception", "")
+        canonical_concept = sample.get("canonical_concept", "")
+        derailment_reason = sample.get("derailment_reason", "")
+        socratic_prompt = sample.get("socratic_prompt", "")
     else:
         # Dynamic Heuristic Decomposition for custom student queries
         canonical_concept = student_concept if student_concept else "Core Analytical Principle"
@@ -416,8 +427,7 @@ def diagnose_doubt_semantic(
     is_pure_hindi = ("Hindi" in output_lang_name or "हिंदी" in output_lang_name) and ("Hinglish" not in output_lang_name and "हिंग्लिश" not in output_lang_name)
 
     # Generate multilingual voice script tailored to student's language
-    if matched_key and matched_key in SAMPLE_DOUBTS:
-        sample = SAMPLE_DOUBTS[matched_key]
+    if sample:
         if is_pure_hindi and sample.get("socratic_prompt_hi"):
             diag_summary["socratic_prompt"] = sample["socratic_prompt_hi"]
 

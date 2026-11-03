@@ -932,12 +932,24 @@ st.markdown("<div class='presets-section-title'>⚡ Curated Multi-Domain Demos (
 demo_cols = st.columns(6)
 
 def load_sample(key: str):
-    s = SAMPLE_DOUBTS[key]
+    import importlib
+    import sample_doubts
+    # Bust stale module cache if key missing (common after Streamlit hot-reloads on Cloud)
+    if key not in sample_doubts.SAMPLE_DOUBTS:
+        importlib.reload(sample_doubts)
+        global SAMPLE_DOUBTS
+        SAMPLE_DOUBTS = sample_doubts.SAMPLE_DOUBTS
+
+    s = sample_doubts.SAMPLE_DOUBTS.get(key)
+    if not s:
+        st.warning(f"⚠️ Demo doubt '{key}' could not be loaded. If you recently updated the app, please reboot the app via Streamlit Cloud menu ('Manage app' ➔ ⋮ ➔ 'Reboot app').")
+        return
+
     is_hi = ("Hindi" in input_lang_name or "हिंदी" in input_lang_name) and ("Hinglish" not in input_lang_name and "हिंग्लिश" not in input_lang_name)
-    st.session_state.form_doubt = s.get("problem_statement_hi") if (is_hi and s.get("problem_statement_hi")) else s["problem_statement"]
-    st.session_state.form_concept = s.get("student_concept_hi") if (is_hi and s.get("student_concept_hi")) else s["student_concept"]
-    st.session_state.form_steps = s.get("student_steps_hi") if (is_hi and s.get("student_steps_hi")) else s["student_steps"]
-    st.session_state.form_breakdown = s.get("student_breakdown_hi") if (is_hi and s.get("student_breakdown_hi")) else s["student_breakdown"]
+    st.session_state.form_doubt = s.get("problem_statement_hi") if (is_hi and s.get("problem_statement_hi")) else s.get("problem_statement", "")
+    st.session_state.form_concept = s.get("student_concept_hi") if (is_hi and s.get("student_concept_hi")) else s.get("student_concept", "")
+    st.session_state.form_steps = s.get("student_steps_hi") if (is_hi and s.get("student_steps_hi")) else s.get("student_steps", "")
+    st.session_state.form_breakdown = s.get("student_breakdown_hi") if (is_hi and s.get("student_breakdown_hi")) else s.get("student_breakdown", "")
     st.session_state.diagnosis_result = None
     st.session_state.audio_bytes = None
     st.session_state.socratic_response_msg = None

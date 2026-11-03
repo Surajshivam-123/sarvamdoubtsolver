@@ -314,6 +314,21 @@ class TestBhashaDoubtSolver(unittest.TestCase):
         self.assertIn('speechText', html)
         self.assertIn('socraticBanner', html)
 
+    def test_sample_doubt_lookup_resilience(self):
+        """Verify that sample doubt lookups handle newly added keys and missing keys safely without KeyErrors."""
+        coding_sample = pedagogy_engine.get_sample_doubt_entry("coding_balanced_parentheses")
+        self.assertIsNotNone(coding_sample)
+        self.assertEqual(coding_sample["subject"], "Computer Science - Data Structures & Algorithms")
+        self.assertIn("problem_statement", coding_sample)
+        self.assertIn("problem_statement_hi", coding_sample)
+
+        # Non-existent key must return None without raising KeyError
+        missing_sample = pedagogy_engine.get_sample_doubt_entry("completely_unknown_key_xyz")
+        self.assertIsNone(missing_sample)
+
+        none_sample = pedagogy_engine.get_sample_doubt_entry(None)
+        self.assertIsNone(none_sample)
+
 
 
 if __name__ == "__main__":
