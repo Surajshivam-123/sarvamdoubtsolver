@@ -26,7 +26,8 @@ SARVAM_TRANSLATE_URL = "https://api.sarvam.ai/translate"
 
 LANGUAGE_REGISTRY = {
     "English": {"code": "en-IN", "speaker": "simran", "name": "English (Indian)"},
-    "Hindi (Hinglish)": {"code": "hi-IN", "speaker": "ritu", "name": "Hindi (Hinglish)"},
+    "Hindi (हिंदी)": {"code": "hi-IN", "speaker": "aditya", "name": "Hindi (हिंदी)", "mode": "hindi"},
+    "Hinglish (हिंग्लिश)": {"code": "hi-IN", "speaker": "ritu", "name": "Hinglish (हिंग्लिश)", "mode": "hinglish"},
     "Bengali (বাংলা)": {"code": "bn-IN", "speaker": "roopa", "name": "Bengali (বাংলা)"},
     "Marathi (मराठी)": {"code": "mr-IN", "speaker": "soham", "name": "Marathi (मराठी)"},
     "Tamil (தமிழ்)": {"code": "ta-IN", "speaker": "gokul", "name": "Tamil (தமிழ்)"},

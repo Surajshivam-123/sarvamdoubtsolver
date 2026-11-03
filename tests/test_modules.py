@@ -115,6 +115,33 @@ class TestBhashaDoubtSolver(unittest.TestCase):
         self.assertTrue("नोड 2" in diag["narration_script"] or "Node 2" in diag["narration_script"])
         self.assertTrue("पिवट नोड" in diag["narration_script"] or "Pivot Node" in diag["narration_script"])
 
+        # Check separate Hindi (हिंदी) vs Hinglish (हिंग्लिश) outputs
+        diag_hindi = pedagogy_engine.diagnose_doubt_semantic(
+            doubt=sample["problem_statement"],
+            student_concept=sample["student_concept"],
+            student_steps=sample["student_steps"],
+            student_breakdown=sample["student_breakdown"],
+            preferred_language="hi-IN",
+            student_name="Arjun",
+            output_lang_name="Hindi (हिंदी)"
+        )
+        self.assertIn("विचार मानचित्र", diag_hindi["narration_script"])
+
+        diag_hinglish = pedagogy_engine.diagnose_doubt_semantic(
+            doubt=sample["problem_statement"],
+            student_concept=sample["student_concept"],
+            student_steps=sample["student_steps"],
+            student_breakdown=sample["student_breakdown"],
+            preferred_language="hi-IN",
+            student_name="Arjun",
+            output_lang_name="Hinglish (हिंग्लिश)"
+        )
+        self.assertTrue("thought map" in diag_hinglish["narration_script"] or "Node 2" in diag_hinglish["narration_script"])
+
+        # Verify LANGUAGE_REGISTRY has both Hindi and Hinglish
+        self.assertIn("Hindi (हिंदी)", sarvam_tts.LANGUAGE_REGISTRY)
+        self.assertIn("Hinglish (हिंग्लिश)", sarvam_tts.LANGUAGE_REGISTRY)
+
         # Check English script
         script_en = pedagogy_engine.synthesize_multilingual_narration(diag, "en-IN")
         self.assertIn("Node 2", script_en)
@@ -165,6 +192,128 @@ class TestBhashaDoubtSolver(unittest.TestCase):
         )
         self.assertFalse(resolved_bad)
         self.assertEqual(level_bad, "fragile")
+
+    def test_concept_diagnostician_schema(self):
+        """Verify strict concept diagnostician JSON schema generation."""
+        sample = SAMPLE_DOUBTS["spring_friction_energy"]
+        diag = pedagogy_engine.diagnose_doubt_semantic(
+            doubt=sample["problem_statement"],
+            student_concept=sample["student_concept"],
+            student_steps=sample["student_steps"],
+            student_breakdown=sample["student_breakdown"]
+        )
+        self.assertIn("concept_diagnostics", diag)
+        cd = diag["concept_diagnostics"]
+        # Schema assertions
+        self.assertIn("topic_taxonomy", cd)
+        self.assertIn("student_mental_model", cd)
+        self.assertIn("mastery_assessment", cd)
+        self.assertIn("remediation_recommendations", cd)
+        self.assertIn("sarvam_narration_script", cd)
+
+        # Check subfields
+        self.assertEqual(cd["topic_taxonomy"]["domain"], "Physics")
+        self.assertEqual(cd["student_mental_model"]["cognitive_fallacy_type"], "Over-Generalization")
+        self.assertEqual(cd["mastery_assessment"]["status"], "INTUITIVELY_CLOSE")
+        self.assertIsInstance(cd["mastery_assessment"]["solid_foundations_demonstrated"], list)
+        self.assertIsInstance(cd["remediation_recommendations"]["suggested_study_topics"], list)
+        self.assertLessEqual(len(cd["sarvam_narration_script"].split()), 100)
+
+    def test_cross_disciplinary_multi_domain_demos(self):
+        """Verify all 6 diverse multi-domain demo fields diagnose accurately."""
+        domains_to_test = [
+            ("law_freedom_of_speech", "Law"),
+            ("economics_rent_control", "Economics"),
+            ("history_ww1_causality", "History"),
+            ("literature_macbeth_tragic_flaw", "Literature"),
+            ("coding_balanced_parentheses", "Computer Science"),
+            ("spring_friction_energy", "Physics")
+        ]
+
+        for sample_key, expected_domain in domains_to_test:
+            self.assertIn(sample_key, SAMPLE_DOUBTS)
+            sample = SAMPLE_DOUBTS[sample_key]
+            diag = pedagogy_engine.diagnose_doubt_semantic(
+                doubt=sample["problem_statement"],
+                student_concept=sample["student_concept"],
+                student_steps=sample["student_steps"],
+                student_breakdown=sample["student_breakdown"]
+            )
+            self.assertIn("concept_diagnostics", diag)
+            cd = diag["concept_diagnostics"]
+            self.assertEqual(cd["topic_taxonomy"]["domain"], expected_domain)
+            self.assertGreater(len(cd["topic_taxonomy"]["concept_tags"]), 1)
+            self.assertIn("flawed_opinion_summary", cd["student_mental_model"])
+            self.assertIn("remediation_recommendations", cd)
+            self.assertLessEqual(len(cd["sarvam_narration_script"].split()), 100)
+
+    def test_live_classroom_storyboard_schema_and_audio_compliance(self):
+        """Verify Bhasha Guru live blackboard storyboard schema, coordinates, and LaTeX-free audio compliance."""
+        import re
+        latex_regex = re.compile(r'(\\[a-zA-Z]+|\^2|\_\{|\})')
+
+        all_keys = list(SAMPLE_DOUBTS.keys()) + [None]
+        for key in all_keys:
+            sb = pedagogy_engine.generate_live_board_storyboard(
+                {"canonical_concept": "Test", "derailment_step": 2, "derailment_reason": "Test fault"},
+                matched_key=key,
+                output_lang_name="Hinglish (हिंग्लिश)"
+            )
+            # Schema checks
+            self.assertIn("doubt_domain", sb)
+            self.assertIn("identified_topic", sb)
+            self.assertIn("misconception_name", sb)
+            self.assertIn("full_spoken_transcript", sb)
+            self.assertIn("synchronized_timeline", sb)
+            self.assertIn("socratic_challenge", sb)
+            self.assertGreaterEqual(len(sb["synchronized_timeline"]), 4)
+
+            # Frame compliance checks
+            for frame in sb["synchronized_timeline"]:
+                self.assertIn(frame["board_action"], ["WRITE", "DRAW_BOX", "CROSS_OUT", "DRAW_ARROW", "HIGHLIGHT", "CLEAR_SECTION"])
+                self.assertIn("color", frame)
+                self.assertIn("target_coords", frame)
+                # Verify coordinate boundaries are within 800x500 slate
+                coords = frame["target_coords"]
+                if "x" in coords:
+                    self.assertGreaterEqual(coords["x"], 0)
+                    self.assertLessEqual(coords["x"], 800)
+                if "y" in coords:
+                    self.assertGreaterEqual(coords["y"], 0)
+                    self.assertLessEqual(coords["y"], 500)
+
+                # Strict audio compliance: No raw LaTeX symbols
+                self.assertEqual(
+                    latex_regex.findall(frame["speech_segment"]),
+                    [],
+                    f"LaTeX symbol found in audio speech segment: {frame['speech_segment']}"
+                )
+
+        # Check Hindi and Hinglish localizations
+        sb_hi = pedagogy_engine.generate_live_board_storyboard({}, matched_key="spring_friction_energy", output_lang_name="Hindi (हिंदी)")
+        self.assertIn("घर्षण", sb_hi["full_spoken_transcript"])
+
+        sb_hinglish = pedagogy_engine.generate_live_board_storyboard({}, matched_key="spring_friction_energy", output_lang_name="Hinglish (हिंग्लिश)")
+        self.assertIn("Pehle", sb_hinglish["full_spoken_transcript"])
+
+    def test_blackboard_component_html_generation(self):
+        """Verify HTML5 blackboard canvas generation, SVG/Canvas slate, base64 audio and responsive controls."""
+        import blackboard_component
+
+        sb = pedagogy_engine.generate_live_board_storyboard({}, matched_key="economics_rent_control")
+        dummy_wav = b"RIFF" + b"\x00" * 36 + b"WAVEfmt " + b"\x00" * 20
+
+        html = blackboard_component.build_blackboard_html(sb, audio_bytes=dummy_wav)
+        self.assertIn('<canvas id="blackboard" width="800" height="500"></canvas>', html)
+        self.assertIn('data:audio/wav;base64,', html)
+        self.assertIn('Bhasha Guru', html)
+        self.assertIn('Economics', html)
+        self.assertIn('btnPlay', html)
+        self.assertIn('btnFullBoard', html)
+        self.assertIn('scrubBar', html)
+        self.assertIn('speechText', html)
+        self.assertIn('socraticBanner', html)
+
 
 
 if __name__ == "__main__":

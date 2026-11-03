@@ -4,7 +4,7 @@
   "preferred_language": "hi-IN",
   "preferred_voice": "meera",
   "created_at": "2026-11-03T13:18:43.061612",
-  "last_active": "2026-11-03T13:18:43.061665",
+  "last_active": "2026-11-03T16:43:57.378360",
   "session_count": 1,
   "mastery_map": {
     "Equations of Motion (Constant a)": "solid",
@@ -12,7 +12,9 @@
     "Work-Energy Theorem with Friction": "misconception_prone",
     "Centripetal Force & Inertial Frames": "misconception_prone",
     "Chemical Equilibrium & Catalysts": "fragile",
-    "Conservation of Momentum": "solid"
+    "Conservation of Momentum": "solid",
+    "Work-Energy Theorem with Non-Conservative Forces": "misconception_prone",
+    "Aristotelian Tragic Flaw (Hamartia): Volitional Agency vs External Catalysts": "fragile"
   },
   "error_history": [
     {
@@ -32,7 +34,34 @@
       "severity": "Medium",
       "details": "Equated initial potential energy directly to maximum kinetic energy despite rough surface.",
       "resolved": false
+    },
+    {
+      "timestamp": "2026-11-03T15:48:13.736193",
+      "problem_topic": "Conservation of Mechanical Energy (mgh = 1/2 k x²)",
+      "concept": "Work-Energy Theorem with Non-Conservative Forces",
+      "type": "Neglecting Non-Conservative Friction Work during Energy Conservation",
+      "severity": "High",
+      "details": "Treated mechanical energy as strictly conserved despite the presence of non-conservative friction work W_nc = -μ m g d cos(θ).",
+      "resolved": false
+    },
+    {
+      "timestamp": "2026-11-03T15:58:59.145130",
+      "problem_topic": "External Determinism & Denial of Protagonist Moral Agency",
+      "concept": "Aristotelian Tragic Flaw (Hamartia): Volitional Agency vs External Catalysts",
+      "type": "Absolution of Moral Agency (Conflating External Temptation with Compulsion)",
+      "severity": "Medium",
+      "details": "Absolved Macbeth of moral agency. In dramatic theory, external catalysts (the witches, Lady Macbeth) merely illuminate and tempt the protagonist's latent flaw ('vaulting ambition'). Without volitional choice and complicity, the work becomes a tale of mere victimization rather than a tragedy.",
+      "resolved": false
+    },
+    {
+      "timestamp": "2026-11-03T16:43:57.377662",
+      "problem_topic": "Conservation of Mechanical Energy (mgh = 1/2 k x²)",
+      "concept": "Work-Energy Theorem with Non-Conservative Forces",
+      "type": "Neglecting Non-Conservative Friction Work during Energy Conservation",
+      "severity": "High",
+      "details": "Treated mechanical energy as strictly conserved despite the presence of non-conservative friction work W_nc = -μ m g d cos(θ).",
+      "resolved": false
     }
   ],
-  "pedagogical_trajectory": "Arjun has strong algebraic manipulation skills but exhibits two recurring cognitive blind spots: (1) over-generalizing scalar conservation laws while ignoring dissipative/friction work terms, and (2) treating time-dependent dynamical vectors as static constants."
+  "pedagogical_trajectory": "Active friction areas across 4 key domain(s): Newton's Laws & Friction, Work-Energy Theorem with Non-Conservative Forces, Aristotelian Tragic Flaw (Hamartia): Volitional Agency vs External Catalysts. Recurring pattern of errors: Absolution of Moral Agency (Conflating External Temptation with Compulsion); Neglecting Non-Conservative Friction Work during Energy Conservation."
 }

@@ -1,7 +1,15 @@
 # https://surajshivam-123-sarvamdoubtsolver-app-l9gqc5.streamlit.app/
 """
-Bhasha Doubt Solver (भाषा डाउट सॉल्वर)
-A pedagogical Streamlit web application that:
+Sansay (संशय) - Socratic Cross-Disciplinary Academic Doubt Solver
+A cross-disciplinary pedagogical web application across:
+- Humanities, Law, and Constitutional Jurisprudence
+- Economics, Business, and Social Sciences
+- World History and International Relations
+- Literature, Philosophy, and Dramatic Theory
+- Computer Science, Algorithms, and Logic
+- STEM, Physics, and Natural Sciences
+
+Features:
 1. Enforces active student retrieval (No direct solutions)
 2. Pinpoints root conceptual misconceptions via diagnostic evaluation
 3. Persists a longitudinal learner profile across questions
@@ -9,9 +17,8 @@ A pedagogical Streamlit web application that:
    - Map A: Student's Actual Path (Coral/Red error nodes)
    - Map B: Remediated Conceptual Path (Emerald Green pivot nodes)
 5. Delivers multilingual auditory narration using Sarvam AI Text-to-Speech (TTS)
-   - Supports 10 Indian languages with native bulbul:v3 speakers
-   - Natural classroom Hinglish STEM terminology preservation
-   - Streamlit Cloud & local zero-friction deployment
+   - Supports Indian languages with native bulbul:v3 speakers
+   - Dedicated separate Hindi (हिंदी) and Hinglish (हिंग्लिश) modes
 """
 
 import os
@@ -25,119 +32,717 @@ load_dotenv()
 import learner_model
 import pedagogy_engine
 import sarvam_tts
+import blackboard_component
 from sample_doubts import SAMPLE_DOUBTS
 
 # ---------------------------------------------------------
 # Page Configuration & Modern Theme Styling
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title="Universal Bhasha Doubt Solver (Hinglish/Hybrid)",
-    page_icon="🧭",
+    page_title="Sansay (संशय) | AI Socratic Academic Doubt Solver",
+    page_icon="💡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 CUSTOM_CSS = """
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
-    
-    html, body, [class*="css"] {
-        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
+
+    /* =========================================================
+       Design Tokens & Typography Reset (Plus Jakarta Sans)
+       ========================================================= */
+    html, body, .stApp {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        color: #0f172a;
     }
 
-    .main-title-container {
-        padding: 1.5rem 1.8rem;
-        border-radius: 16px;
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #064e3b 100%);
-        color: white;
+    /* Apply typography to text elements while preserving icon fonts */
+    h1, h2, h3, h4, h5, h6, p, label, input, textarea, select, 
+    .stMarkdown, .stText, [data-testid="stMarkdownContainer"] {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    code, kbd, samp, pre {
+        font-family: 'JetBrains Mono', monospace !important;
+    }
+
+    /* SaaS Dashboard Slate Canvas */
+    .stApp {
+        background-color: #f8fafc !important;
+        background-image: 
+            radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.04) 0px, transparent 50%),
+            radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.04) 0px, transparent 50%) !important;
+    }
+
+    /* Glassmorphism Header */
+    header[data-testid="stHeader"] {
+        background: rgba(248, 250, 252, 0.85) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
+    }
+
+    div[data-testid="stDecoration"] {
+        display: none !important;
+    }
+
+    footer {
+        display: none !important;
+    }
+
+    /* Responsive Main Block Container */
+    [data-testid="stMainBlockContainer"], section.main .block-container {
+        padding-top: 1.6rem !important;
+        padding-bottom: 5rem !important;
+        max-width: 1280px !important;
+    }
+
+    /* Sleek Custom Scrollbars */
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+
+    /* =========================================================
+       SaaS Dashboard Components (Linear / Vercel / shadcn inspired)
+       ========================================================= */
+    .saas-hero {
+        position: relative;
+        background: linear-gradient(180deg, #09090b 0%, #18181b 100%);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 14px;
+        padding: 1.25rem 1.6rem;
         margin-bottom: 1.5rem;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 
+            0 10px 15px -3px rgba(0, 0, 0, 0.15),
+            0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
     }
 
-    .main-title {
-        font-size: 2.2rem;
+    .saas-hero::before {
+        content: "";
+        position: absolute;
+        top: -60%;
+        left: -30%;
+        width: 160%;
+        height: 160%;
+        background: radial-gradient(circle at 40% 10%, rgba(16, 185, 129, 0.12), transparent 60%);
+        pointer-events: none;
+    }
+
+    .status-pill-pulse {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.25rem 0.75rem;
+        background: rgba(16, 185, 129, 0.12);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        border-radius: 9999px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: #34d399;
+        letter-spacing: 0.03em;
+    }
+
+    .pulse-dot {
+        width: 6px;
+        height: 6px;
+        background-color: #10b981;
+        border-radius: 50%;
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+        animation: pulse-ring 2s infinite cubic-bezier(0.66, 0, 0, 1);
+    }
+
+    @keyframes pulse-ring {
+        0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+        70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    .hero-title {
+        font-size: 1.85rem;
         font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.15;
         margin: 0;
-        letter-spacing: -0.025em;
-        background: linear-gradient(to right, #ffffff, #a7f3d0);
+        background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 60%, #a7f3d0 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        position: relative;
+        z-index: 1;
     }
 
-    .main-subtitle {
-        font-size: 1.05rem;
-        color: #cbd5e1;
-        margin-top: 0.4rem;
-        font-weight: 400;
+    .bridge-chip {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #e2e8f0;
+        padding: 0.2rem 0.65rem;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 600;
     }
 
+    /* SaaS White Container Card */
+    .saas-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 1.4rem 1.65rem;
+        margin-bottom: 1.35rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03);
+    }
+
+    .saas-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: 0.85rem;
+        margin-bottom: 1.15rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .saas-card-title {
+        font-size: 1.12rem;
+        font-weight: 700;
+        color: #0f172a;
+        letter-spacing: -0.02em;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 0;
+    }
+
+    .step-badge {
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        color: #475569;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 0.2rem 0.6rem;
+        border-radius: 6px;
+    }
+
+    /* Section Kicker */
+    .presets-section-title {
+        font-size: 0.76rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #64748b;
+        margin-bottom: 0.6rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    /* Socratic Guardrail Banner */
+    .guardrail-callout {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-left: 4.5px solid #10b981;
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1.35rem;
+        font-size: 0.91rem;
+        color: #065f46;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.85rem;
+        line-height: 1.5;
+        box-shadow: 0 1px 2px 0 rgba(16, 185, 129, 0.04);
+    }
+
+    /* Diagnostic Callout Banners */
+    .derailment-banner {
+        background: #fff1f2;
+        border: 1px solid #fecdd3;
+        border-left: 4.5px solid #ef4444;
+        border-radius: 12px;
+        padding: 1.25rem 1.4rem;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 1px 3px 0 rgba(239, 68, 68, 0.06);
+    }
+
+    .derailment-title {
+        font-size: 1.08rem;
+        font-weight: 700;
+        color: #991b1b;
+        letter-spacing: -0.01em;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .derailment-concept {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #7f1d1d;
+        margin-top: 0.35rem;
+    }
+
+    .derailment-desc {
+        font-size: 0.9rem;
+        color: #450a0a;
+        margin-top: 0.35rem;
+        line-height: 1.5;
+    }
+
+    .remediation-banner {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-left: 4.5px solid #10b981;
+        border-radius: 12px;
+        padding: 1.25rem 1.4rem;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 1px 3px 0 rgba(16, 185, 129, 0.06);
+    }
+
+    .longitudinal-banner {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        border-left: 4.5px solid #f59e0b;
+        border-radius: 12px;
+        padding: 1.25rem 1.4rem;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 1px 3px 0 rgba(245, 158, 11, 0.06);
+        font-size: 0.91rem;
+        color: #92400e;
+        line-height: 1.5;
+    }
+
+    /* Socratic Active Retrieval Challenge Box */
+    .socratic-challenge-box {
+        background: linear-gradient(180deg, #ecfdf5 0%, #f0fdf4 100%);
+        border: 1.5px dashed #059669;
+        border-radius: 14px;
+        padding: 1.4rem 1.6rem;
+        margin-top: 1.25rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .socratic-prompt-text {
+        font-size: 1.02rem;
+        font-weight: 500;
+        color: #064e3b;
+        line-height: 1.55;
+        margin-top: 0.5rem;
+    }
+
+    /* Canvas Frame & Toolbar for Graphviz */
+    .canvas-toolbar {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-bottom: none;
+        border-radius: 12px 12px 0 0;
+        padding: 0.65rem 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #64748b;
+    }
+
+    /* Node Breakdown List Cards */
+    .node-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 0.8rem 1rem;
+        margin-bottom: 0.6rem;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+        transition: all 0.15s ease;
+    }
+
+    .node-card:hover {
+        border-color: #cbd5e1;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.04);
+    }
+
+    .node-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .node-card-detail {
+        font-size: 0.82rem;
+        color: #64748b;
+        margin-top: 0.35rem;
+        line-height: 1.45;
+    }
+
+    /* Auditory & Spoken Narration Script Card */
+    .audio-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 1.3rem 1.4rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03);
+    }
+
+    .narration-quote {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.25rem 1.4rem;
+        font-size: 0.94rem;
+        line-height: 1.6;
+        color: #334155;
+        font-style: italic;
+        margin-top: 0.6rem;
+        box-shadow: inset 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+    }
+
+    /* Badges */
     .badge-pill {
-        display: inline-block;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
         padding: 0.25rem 0.65rem;
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         font-weight: 600;
         border-radius: 9999px;
-        margin-right: 0.4rem;
-        margin-top: 0.4rem;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-    .badge-green { background-color: #d1fae5; color: #065f46; border: 1px solid #10b981; }
-    .badge-amber { background-color: #fef3c7; color: #92400e; border: 1px solid #f59e0b; }
-    .badge-coral { background-color: #fee2e2; color: #991b1b; border: 1px solid #ef4444; }
-    .badge-blue  { background-color: #dbeafe; color: #1e40af; border: 1px solid #3b82f6; }
-    .badge-purple{ background-color: #f3e8ff; color: #6b21a8; border: 1px solid #a855f7; }
-
-    .step-card {
-        background-color: #ffffff;
-        border-radius: 12px;
-        padding: 1.25rem 1.5rem;
-        margin-bottom: 1.25rem;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+        letter-spacing: 0.04em;
+        line-height: 1;
     }
 
-    .misconception-callout {
-        border-left: 5px solid #ef4444;
-        background: #fff1f2;
-        padding: 1rem 1.25rem;
-        border-radius: 0 10px 10px 0;
-        margin: 1rem 0;
+    .badge-green { background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+    .badge-amber { background-color: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+    .badge-coral { background-color: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
+    .badge-blue  { background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .badge-purple{ background-color: #faf5ff; color: #7e22ce; border: 1px solid #e9d5ff; }
+    .badge-slate { background-color: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
+
+    /* =========================================================
+       Streamlit Native Component Overrides (Tactile Web Styling)
+       ========================================================= */
+
+    /* Primary Button: Gradient emerald with elevation */
+    div[data-testid="stButton"] button[kind="primary"],
+    button[data-testid="stBaseButton-primary"] {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
+        font-size: 0.92rem !important;
+        border-radius: 10px !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 4px 14px 0 rgba(16, 185, 129, 0.28) !important;
+        padding: 0.65rem 1.25rem !important;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        letter-spacing: -0.01em !important;
     }
 
-    .remediation-callout {
-        border-left: 5px solid #10b981;
-        background: #f0fdf4;
-        padding: 1rem 1.25rem;
-        border-radius: 0 10px 10px 0;
-        margin: 1rem 0;
+    div[data-testid="stButton"] button[kind="primary"]:hover,
+    button[data-testid="stBaseButton-primary"]:hover {
+        background: linear-gradient(135deg, #34d399 0%, #059669 100%) !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 6px 20px 0 rgba(16, 185, 129, 0.38) !important;
     }
 
-    .longitudinal-callout {
-        border-left: 5px solid #f59e0b;
-        background: #fffbeb;
-        padding: 0.85rem 1.15rem;
-        border-radius: 0 10px 10px 0;
-        margin: 0.75rem 0;
-        font-size: 0.92rem;
+    div[data-testid="stButton"] button[kind="primary"]:active,
+    button[data-testid="stBaseButton-primary"]:active {
+        transform: translateY(0px) !important;
+        box-shadow: 0 2px 6px 0 rgba(16, 185, 129, 0.25) !important;
     }
 
-    .socratic-box {
-        border: 2px dashed #059669;
-        background: #ecfdf5;
-        border-radius: 12px;
-        padding: 1.25rem;
-        margin-top: 1rem;
+    /* Secondary / Preset Buttons / Download Button */
+    div[data-testid="stButton"] button[kind="secondary"],
+    button[data-testid="stBaseButton-secondary"],
+    div[data-testid="stDownloadButton"] button {
+        background: #ffffff !important;
+        color: #1e293b !important;
+        font-weight: 600 !important;
+        font-size: 0.86rem !important;
+        border-radius: 10px !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03) !important;
+        padding: 0.6rem 1rem !important;
+        transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
 
-    .stGraphvizChart {
+    div[data-testid="stButton"] button[kind="secondary"]:hover,
+    button[data-testid="stBaseButton-secondary"]:hover,
+    div[data-testid="stDownloadButton"] button:hover {
+        background: #f8fafc !important;
+        border-color: #cbd5e1 !important;
+        color: #0f172a !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 3px 8px -1px rgba(0, 0, 0, 0.08) !important;
+    }
+
+    /* Inputs & Textareas */
+    div[data-baseweb="input"],
+    div[data-baseweb="textarea"],
+    div[data-testid="stTextInputRootElement"] {
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 10px !important;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02) !important;
+        transition: all 0.18s ease-in-out !important;
+    }
+
+    div[data-baseweb="input"]:focus-within,
+    div[data-baseweb="textarea"]:focus-within,
+    div[data-testid="stTextInputRootElement"]:focus-within {
+        border-color: #10b981 !important;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15), 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+    }
+
+    input, textarea {
+        font-family: 'Plus Jakarta Sans', sans-serif !important;
+        font-size: 0.92rem !important;
+        color: #0f172a !important;
+    }
+
+    /* =========================================================
+       Password Visibility Toggle & Material Symbols Icon Fix
+       ========================================================= */
+    [data-testid*="Icon"],
+    [class*="material-symbols"],
+    [class*="e1vmumty"],
+    span[data-testid="stIconMaterial"],
+    div[data-testid="stTextInput"] button span,
+    div[data-testid="stTextInput"] [class*="e1vmumty"],
+    .material-symbols-rounded {
+        font-family: 'Material Symbols Rounded', 'Material Icons' !important;
+        font-weight: normal !important;
+        font-style: normal !important;
+        font-size: 1.25rem !important;
+        line-height: 1 !important;
+        letter-spacing: normal !important;
+        text-transform: none !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        white-space: nowrap !important;
+        word-wrap: normal !important;
+        direction: ltr !important;
+        font-feature-settings: 'liga' 1 !important;
+        -webkit-font-feature-settings: 'liga' 1 !important;
+        -webkit-font-smoothing: antialiased !important;
+        color: #64748b !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    div[data-testid="stTextInput"] button {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: transparent !important;
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+        padding: 0 0.5rem !important;
+        cursor: pointer !important;
+        color: #64748b !important;
+        visibility: visible !important;
+        opacity: 0.8 !important;
+    }
+
+    div[data-testid="stTextInput"] button:hover {
+        opacity: 1 !important;
+        color: #0f172a !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        transform: none !important;
+    }
+
+    /* Selectboxes */
+    div[data-baseweb="select"] > div {
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 10px !important;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02) !important;
+        transition: all 0.18s ease !important;
+    }
+
+    div[data-baseweb="select"] > div:focus-within {
+        border-color: #10b981 !important;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
+    }
+
+    /* Segmented Control Tabs (shadcn/ui style) */
+    div[data-baseweb="tab-list"] {
+        background: #f1f5f9 !important;
+        padding: 4px !important;
+        border-radius: 12px !important;
+        gap: 4px !important;
+        border: 1px solid #e2e8f0 !important;
+        margin-bottom: 1.25rem !important;
+    }
+
+    button[data-baseweb="tab"] {
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        font-size: 0.85rem !important;
+        color: #64748b !important;
+        padding: 7px 16px !important;
+        background: transparent !important;
+        border: none !important;
+        transition: all 0.15s ease-in-out !important;
+    }
+
+    button[data-baseweb="tab"]:hover {
+        color: #0f172a !important;
+    }
+
+    button[data-baseweb="tab"][aria-selected="true"] {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.08) !important;
+    }
+
+    div[data-baseweb="tab-highlight"],
+    div[data-baseweb="tab-border"] {
+        display: none !important;
+    }
+
+    /* KPI Metric Cards */
+    div[data-testid="stMetric"] {
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+        padding: 0.9rem 1.15rem !important;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04) !important;
+        transition: all 0.2s ease !important;
+    }
+
+    div[data-testid="stMetric"]:hover {
+        border-color: #cbd5e1 !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 8px -2px rgba(0, 0, 0, 0.06) !important;
+    }
+
+    div[data-testid="stMetricLabel"] {
+        font-size: 0.72rem !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.06em !important;
+        color: #64748b !important;
+    }
+
+    div[data-testid="stMetricValue"] {
+        font-size: 1.65rem !important;
+        font-weight: 800 !important;
+        color: #0f172a !important;
+        letter-spacing: -0.02em !important;
+    }
+
+    /* Expanders */
+    details[data-testid="stExpander"] {
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02) !important;
+        margin-bottom: 0.75rem !important;
+        overflow: hidden !important;
+        transition: border-color 0.18s ease !important;
+    }
+
+    details[data-testid="stExpander"]:hover {
+        border-color: #cbd5e1 !important;
+    }
+
+    summary[data-testid="stExpanderSummary"] {
+        font-weight: 600 !important;
+        font-size: 0.88rem !important;
+        color: #334155 !important;
+        padding: 0.75rem 1rem !important;
+    }
+
+    /* Graphviz Chart Container */
+    div[data-testid="stGraphvizChart"] {
+        display: flex !important;
+        justify-content: center !important;
+        background-color: #ffffff !important;
+        border-radius: 12px !important;
+        padding: 1.25rem !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03) !important;
+    }
+
+    /* Sidebar Custom Styling */
+    section[data-testid="stSidebar"] {
+        background-color: #fbfcfd !important;
+        border-right: 1px solid #e2e8f0 !important;
+    }
+
+    section[data-testid="stSidebar"] .block-container {
+        padding-top: 1.8rem !important;
+        padding-left: 1.25rem !important;
+        padding-right: 1.25rem !important;
+    }
+
+    .sidebar-brand-box {
         display: flex;
-        justify-content: center;
-        background-color: #f8fafc;
-        border-radius: 12px;
-        padding: 1rem;
+        align-items: center;
+        gap: 0.7rem;
+        padding: 0.8rem 0.95rem;
+        background: #ffffff;
         border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        margin-bottom: 1.4rem;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+    }
+
+    .sidebar-section-kicker {
+        font-size: 0.68rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #94a3b8;
+        margin-top: 1.1rem;
+        margin-bottom: 0.45rem;
+    }
+
+    .student-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 0.9rem 1rem;
+        margin-bottom: 0.85rem;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+    }
+
+    .student-card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+    }
+
+    .student-avatar {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 0.88rem;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 4px 0 rgba(16, 185, 129, 0.2);
     }
 </style>
 """
@@ -152,6 +757,8 @@ if "selected_student_id" not in st.session_state:
 
 if "current_profile" not in st.session_state:
     st.session_state.current_profile = learner_model.load_profile(st.session_state.selected_student_id)
+
+profile = st.session_state.current_profile
 
 if "diagnosis_result" not in st.session_state:
     st.session_state.diagnosis_result = None
@@ -175,30 +782,80 @@ for key in ["form_doubt", "form_concept", "form_steps", "form_breakdown"]:
 
 
 # ---------------------------------------------------------
-# Sidebar: Identity, Profile, Settings & Mastery Graph
+# Sidebar: Modern SaaS Control Panel
 # ---------------------------------------------------------
 with st.sidebar:
-    st.title("🌐 Language Matrix")
-    st.caption("Pedagogical Hybrid / Hinglish Support")
+    # Sidebar Brand Header with Sansay SVG Logo
+    st.markdown(
+        """
+        <div class="sidebar-brand-box">
+            <div style="flex-shrink:0;">
+                <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="36" height="36" rx="10" fill="url(#sb-sansay-grad)"/>
+                    <path d="M10.5 13C10.5 10.7909 12.2909 9 14.5 9H21.5C23.9853 9 26 11.0147 26 13.5C26 15.9853 23.9853 18 21.5 18H14.5C12.0147 18 10 20.0147 10 22.5C10 24.9853 12.0147 27 14.5 27H21.5C23.7091 27 25.5 25.2091 25.5 23" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="18" cy="18" r="2.2" fill="#A7F3D0"/>
+                    <defs>
+                        <linearGradient id="sb-sansay-grad" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#10B981"/>
+                            <stop offset="1" stop-color="#047857"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <div>
+                <div style="font-weight:800; font-size:1.15rem; letter-spacing:-0.03em; color:#0f172a; line-height:1.1;">
+                    Sansay <span style="font-size:0.88rem; font-weight:600; color:#059669;">(संशय)</span>
+                </div>
+                <div style="font-size:0.72rem; color:#64748b; font-weight:600; letter-spacing:0.02em;">Socratic Engine v2.4</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # 1. Language Matrix
+    st.markdown("<div class='sidebar-section-kicker'>01 // Translation & Voice Matrix</div>", unsafe_allow_html=True)
 
     input_lang_name = st.selectbox(
-        "Input Language (Student types):",
+        "Student Input Language:",
         options=list(sarvam_tts.LANGUAGE_REGISTRY.keys()),
         index=0,
+        help="Language used for student question and reasoning formulation."
     )
 
     output_lang_name = st.selectbox(
-        "Output Language (Thought Maps & Voice):",
+        "Voice & Remediation Target:",
         options=list(sarvam_tts.LANGUAGE_REGISTRY.keys()),
-        index=1,  # Default to Hindi (Hinglish)
+        index=2,  # Default to Hinglish (हिंग्लिश) with Hindi (हिंदी) available
+        help="Language used for thought maps narration and Sarvam TTS synthesis."
     )
     target_cfg = sarvam_tts.LANGUAGE_REGISTRY[output_lang_name]
     lang_code = target_cfg["code"]
     default_speaker = target_cfg["speaker"]
 
+    if "Hinglish" in output_lang_name or "हिंग्लिश" in output_lang_name:
+        st.markdown(
+            """
+            <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:0.5rem 0.75rem; font-size:0.76rem; color:#065f46; margin-top:0.35rem; line-height:1.4;">
+                💡 <b>Hinglish (हिंग्लिश) Mode:</b> Technical terminology across Law, Economics, History, Literature, Coding, and Science is preserved in conversational English for clarity.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    elif "Hindi" in output_lang_name or "हिंदी" in output_lang_name:
+        st.markdown(
+            """
+            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:0.5rem 0.75rem; font-size:0.76rem; color:#1e40af; margin-top:0.35rem; line-height:1.4;">
+                🇮🇳 <b>Hindi (हिंदी) Mode:</b> सभी क्षेत्रों (विधि, अर्थशास्त्र, इतिहास, साहित्य, कोडिंग, विज्ञान) की मानक शब्दावली हिंदी में प्रस्तुत की जाती है।
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
     st.divider()
 
-    st.subheader("🔑 Sarvam AI API")
+    # 2. Sarvam AI Configuration
+    st.markdown("<div class='sidebar-section-kicker'>02 // Sarvam AI API Engine</div>", unsafe_allow_html=True)
     detected_key = sarvam_tts.get_configured_api_key()
     sarvam_key = st.text_input(
         "API Subscription Key",
@@ -209,139 +866,59 @@ with st.sidebar:
     )
 
     speaker = st.selectbox(
-        "Speaker Voice:",
+        "Voice Persona:",
         options=[default_speaker, "ritu", "aditya", "priya", "simran", "soham", "gokul", "kavitha", "pooja", "chaitra", "anand"],
-        index=0
+        index=0,
+        help="Native Indian language speaker profile."
     )
 
-    tts_model = st.selectbox("TTS Model:", options=sarvam_tts.MODEL_OPTIONS, index=0)
+    tts_model = st.selectbox("TTS Architecture:", options=sarvam_tts.MODEL_OPTIONS, index=0)
 
     if sarvam_key:
         st.markdown("<span class='badge-pill badge-green'>✓ Sarvam API Key Active</span>", unsafe_allow_html=True)
     else:
-        st.markdown("<span class='badge-pill badge-amber'>ℹ Acoustic Preview Mode Active</span>", unsafe_allow_html=True)
-
-    if "Hindi" in output_lang_name:
-        st.info("💡 **Hinglish Mode Active:** Scientific terms (Friction, Energy, Conservation, FBD) are kept in natural conversational English for pedagogical clarity.")
-
-    st.divider()
-
-    # Longitudinal Learner Identity & Profile
-    st.subheader("🎓 Longitudinal Profile")
-    profiles_list = learner_model.list_available_profiles()
-    profile_options = {p["student_id"]: f"{p['student_name']} ({p['student_id']})" for p in profiles_list}
-    
-    current_idx = list(profile_options.keys()).index(st.session_state.selected_student_id) if st.session_state.selected_student_id in profile_options else 0
-    selected_id = st.selectbox(
-        "Active Learner:",
-        options=list(profile_options.keys()),
-        index=current_idx,
-        format_func=lambda x: profile_options.get(x, x),
-        help="Select a student to load their persistent longitudinal misconception history."
-    )
-
-    if selected_id != st.session_state.selected_student_id:
-        st.session_state.selected_student_id = selected_id
-        st.session_state.current_profile = learner_model.load_profile(selected_id)
-        st.session_state.diagnosis_result = None
-        st.session_state.audio_bytes = None
-        st.session_state.socratic_response_msg = None
-        st.session_state.socratic_solved = False
-        st.rerun()
-
-    profile = st.session_state.current_profile
-
-    # Longitudinal Profile Actions (Reset / Export / Import)
-    col_reset, col_exp = st.columns(2)
-    with col_reset:
-        if st.button("🔄 Reset Profile", use_container_width=True):
-            st.session_state.current_profile = learner_model.reset_profile(st.session_state.selected_student_id)
-            st.session_state.diagnosis_result = None
-            st.session_state.audio_bytes = None
-            st.toast("Profile reset to clean baseline!", icon="🔄")
-            st.rerun()
-    with col_exp:
-        export_str = learner_model.export_profile_json(profile)
-        st.download_button(
-            "📥 Export JSON",
-            data=export_str,
-            file_name=f"learner_profile_{profile.get('student_id')}.json",
-            mime="application/json",
-            use_container_width=True
-        )
-
-    # Import JSON uploader
-    with st.expander("📤 Import Profile JSON"):
-        uploaded_profile = st.file_uploader("Upload student profile JSON", type=["json"], key="profile_uploader")
-        if uploaded_profile is not None:
-            try:
-                content = uploaded_profile.read().decode("utf-8")
-                imported = learner_model.import_profile_json(content)
-                st.session_state.selected_student_id = imported["student_id"]
-                st.session_state.current_profile = imported
-                st.success(f"Loaded profile: {imported.get('student_name')}")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Failed to import: {str(e)}")
-
-    st.divider()
-
-    # Persistent Knowledge Graph / Mastery Dashboard
-    st.subheader("📊 Mastery Dashboard")
-    mastery = profile.get("mastery_map", {})
-    
-    solid_count = sum(1 for s in mastery.values() if s == "solid")
-    fragile_count = sum(1 for s in mastery.values() if s == "fragile")
-    prone_count = sum(1 for s in mastery.values() if s == "misconception_prone")
-
-    m_c1, m_c2, m_c3 = st.columns(3)
-    m_c1.metric("Solid", solid_count)
-    m_c2.metric("Fragile", fragile_count)
-    m_c3.metric("Prone", prone_count)
-
-    for concept_name, status in mastery.items():
-        if status == "solid":
-            st.markdown(f"🟢 **{concept_name}** `Solid`")
-        elif status == "fragile":
-            st.markdown(f"🟡 **{concept_name}** `Fragile`")
-        else:
-            st.markdown(f"🔴 **{concept_name}** `Misconception-Prone`")
-
-    with st.expander("📜 Historical Error Log & Trajectory"):
-        st.markdown(f"**Longitudinal Trajectory:**\n*{profile.get('pedagogical_trajectory', 'Baseline') }*")
-        st.markdown("---")
-        errors = profile.get("error_history", [])
-        if not errors:
-            st.caption("No misconceptions logged yet.")
-        else:
-            for idx, err in enumerate(reversed(errors[-6:])):
-                badge_cls = "badge-coral" if err.get("severity") == "High" else "badge-amber"
-                status_icon = "✅ Resolved" if err.get("resolved") else "⚠️ Active"
-                st.markdown(
-                    f"<span class='badge-pill {badge_cls}'>{err.get('severity', 'Med')}</span> "
-                    f"**{err.get('concept')}** ({status_icon})<br>"
-                    f"<small><i>{err.get('type')}</i> — {err.get('details', '')[:80]}</small>",
-                    unsafe_allow_html=True
-                )
-
-    with st.expander("🔍 Injected Pedagogical Context"):
-        st.caption("This context string is injected into every diagnostic turn:")
-        st.code(learner_model.build_pedagogical_context(profile), language="markdown")
-
+        st.markdown("<span class='badge-pill badge-amber'>ℹ Acoustic Wave Fallback</span>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# Main Application Content
+# Main Application Content: SaaS Hero Banner
 # ---------------------------------------------------------
 st.markdown(
     f"""
-    <div class="main-title-container">
-        <div class="main-title">Universal Bhasha Doubt Solver <span style="font-size:1.4rem; font-weight:500;">(भाषा डाउट सॉल्वर)</span></div>
-        <div class="main-subtitle">Input in <b>{input_lang_name}</b> ➡️ Natural Pedagogical Remediation & Audio in <b>{output_lang_name}</b></div>
-        <div style="margin-top: 0.8rem;">
-            <span class="badge-pill badge-green">Pedagogical Guardrails (No Direct Answers)</span>
-            <span class="badge-pill badge-blue">Longitudinal Learner Profile</span>
-            <span class="badge-pill badge-coral">Dual Thought Maps (Graphviz)</span>
-            <span class="badge-pill badge-purple">Sarvam AI Indian Language TTS</span>
+    <div class="saas-hero">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; position:relative; z-index:1;">
+            <div style="display:flex; align-items:center; gap:1rem;">
+                <div style="flex-shrink:0;">
+                    <svg width="44" height="44" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 2px 10px rgba(16, 185, 129, 0.35));">
+                        <rect width="48" height="48" rx="12" fill="url(#hero-sansay-grad)"/>
+                        <path d="M14 17C14 13.6863 16.6863 11 20 11H28C31.866 11 35 14.134 35 18C35 21.866 31.866 25 28 25H20C16.134 25 13 28.134 13 32C13 35.866 16.134 39 20 39H28C31.3137 39 34 36.3137 34 33" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="24" cy="25" r="3" fill="#A7F3D0"/>
+                        <circle cx="24" cy="25" r="6.5" stroke="#A7F3D0" stroke-width="1.2" stroke-dasharray="2 2" opacity="0.8"/>
+                        <defs>
+                            <linearGradient id="hero-sansay-grad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#34D399"/>
+                                <stop offset="0.5" stop-color="#10B981"/>
+                                <stop offset="1" stop-color="#047857"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <div>
+                    <div style="display:flex; align-items:baseline; gap:0.5rem; flex-wrap:wrap;">
+                        <span class="hero-title">Sansay</span>
+                        <span style="font-size:1.35rem; font-weight:700; color:#34d399;">(संशय)</span>
+                    </div>
+                    <div style="font-size:0.86rem; color:#94a3b8; margin-top:0.15rem; font-weight:400;">
+                        Cognitive Derailment Diagnostics & Multilingual Socratic Remediation
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+                <span class="bridge-chip">{input_lang_name} ➔ {output_lang_name}</span>
+                <div class="status-pill-pulse">
+                    <span class="pulse-dot"></span>
+                    Sarvam AI Active
+                </div>
+            </div>
         </div>
     </div>
     """,
@@ -349,82 +926,149 @@ st.markdown(
 )
 
 # ---------------------------------------------------------
-# 1-Click Instant Demos (With Natural Hinglish Terminology)
+# 1-Click Multi-Domain Demos
 # ---------------------------------------------------------
-st.markdown("#### ⚡ 1-Click Demos (With Natural Hinglish Terminology):")
-demo_cols = st.columns(4)
+st.markdown("<div class='presets-section-title'>⚡ Curated Multi-Domain Demos (1-Click Load):</div>", unsafe_allow_html=True)
+demo_cols = st.columns(6)
 
 def load_sample(key: str):
     s = SAMPLE_DOUBTS[key]
-    st.session_state.form_doubt = s["problem_statement"]
-    st.session_state.form_concept = s["student_concept"]
-    st.session_state.form_steps = s["student_steps"]
-    st.session_state.form_breakdown = s["student_breakdown"]
+    is_hi = ("Hindi" in input_lang_name or "हिंदी" in input_lang_name) and ("Hinglish" not in input_lang_name and "हिंग्लिश" not in input_lang_name)
+    st.session_state.form_doubt = s.get("problem_statement_hi") if (is_hi and s.get("problem_statement_hi")) else s["problem_statement"]
+    st.session_state.form_concept = s.get("student_concept_hi") if (is_hi and s.get("student_concept_hi")) else s["student_concept"]
+    st.session_state.form_steps = s.get("student_steps_hi") if (is_hi and s.get("student_steps_hi")) else s["student_steps"]
+    st.session_state.form_breakdown = s.get("student_breakdown_hi") if (is_hi and s.get("student_breakdown_hi")) else s["student_breakdown"]
     st.session_state.diagnosis_result = None
     st.session_state.audio_bytes = None
     st.session_state.socratic_response_msg = None
     st.session_state.socratic_solved = False
 
 with demo_cols[0]:
-    if st.button("🏔️ Spring & Friction", use_container_width=True):
-        load_sample("spring_friction_energy")
+    if st.button("⚖️ Law & Civics", use_container_width=True, help="Freedom of Speech & Public Order (Art 19)"):
+        load_sample("law_freedom_of_speech")
         st.rerun()
 
 with demo_cols[1]:
-    if st.button("🐎 Newton's 3rd Law", use_container_width=True):
-        load_sample("newton_third_law_horse_cart")
+    if st.button("📉 Economics", use_container_width=True, help="Rent Control & Supply Elasticity Deadweight Loss"):
+        load_sample("economics_rent_control")
         st.rerun()
 
 with demo_cols[2]:
-    if st.button("🏎️ Circular Turn", use_container_width=True):
-        load_sample("circular_motion_turn")
+    if st.button("📜 History", use_container_width=True, help="Origins of WWI: Trigger vs Structural M-A-I-N Causes"):
+        load_sample("history_ww1_causality")
         st.rerun()
 
 with demo_cols[3]:
-    if st.button("⛸️ Skater Spin", use_container_width=True):
-        load_sample("rotational_skater_spin")
+    if st.button("📖 Literature", use_container_width=True, help="Shakespeare's Macbeth: Fatal Flaw (Hamartia) vs Fate"):
+        load_sample("literature_macbeth_tragic_flaw")
         st.rerun()
+
+with demo_cols[4]:
+    if st.button("💻 Coding", use_container_width=True, help="Balanced Parentheses & Stack Invariant"):
+        load_sample("coding_balanced_parentheses")
+        st.rerun()
+
+with demo_cols[5]:
+    if st.button("🏔️ Physics", use_container_width=True, help="Work-Energy & Friction Dissipation"):
+        load_sample("spring_friction_energy")
+        st.rerun()
+
+st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------
 # STAGE 1: Socratic Elicitation (No Direct Answers Guardrail)
 # ---------------------------------------------------------
-st.markdown(f"### 📝 Stage 1: Problem Articulation & Mental Model ({input_lang_name})")
+is_input_pure_hindi = ("Hindi" in input_lang_name or "हिंदी" in input_lang_name) and ("Hinglish" not in input_lang_name and "हिंग्लिश" not in input_lang_name)
+is_input_hinglish = ("Hinglish" in input_lang_name or "हिंग्लिश" in input_lang_name)
+
+if is_input_pure_hindi:
+    lbl_doubt = "1. समस्या या अकादमिक संशय का विवरण (हिंदी):"
+    ph_doubt = "यहाँ किसी भी विषय (विधि, अर्थशास्त्र, इतिहास, साहित्य, कोडिंग, विज्ञान) का संशय दर्ज करें..."
+    lbl_concept = "2. लागू होने वाला सिद्धांत / नियम / अवधारणा (हिंदी):"
+    ph_concept = "उदा. अनुच्छेद 19(2), मूल्य सीमा, M-A-I-N कारणता, हमारशिया, स्टैक, यांत्रिक ऊर्जा"
+    lbl_breakdown = "4. आपके अनुसार तर्क कहाँ अटक रहा है? (हिंदी):"
+    ph_breakdown = "उदा. निष्कर्ष गलत आ रहा है, या सीमांत शर्त समझ नहीं आ रही..."
+    lbl_steps = "3. आपका चरणबद्ध तर्क / हल करने का प्रयास (हिंदी):"
+    ph_steps = "चरण 1: ...\nचरण 2: ...\nचरण 3: ..."
+    guardrail_badge = "चरण 01 • सक्रिय अन्वेषण"
+    guardrail_msg = "सक्रिय पुनरुत्थान: सीधे उत्तर देने के बजाय आपकी सोच के सटीक विचलन बिंदु की पहचान की जाएगी।"
+elif is_input_hinglish:
+    lbl_doubt = "1. Problem Statement / Academic Doubt (हिंग्लिश):"
+    ph_doubt = "Apna academic question ya doubt yahan enter karein (Law, Econ, History, Lit, CS, Science)..."
+    lbl_concept = "2. Core Concept / Law / Principle (हिंग्लिश):"
+    ph_concept = "e.g. Article 19(2), Rent Control, WWI M-A-I-N Causality, Hamartia, Stack Invariant, Energy"
+    lbl_breakdown = "4. Reasoning Kahan Breakdown Ya Stuck Ho Rahi Hai? (हिंग्लिश):"
+    ph_breakdown = "e.g. Conclusion contradict ho raha hai, ya boundary condition clear nahi hai..."
+    lbl_steps = "3. Aapka Step-by-Step Logic / Attempted Derivation (हिंग्लिश):"
+    ph_steps = "Step 1: ...\nStep 2: ...\nStep 3: ..."
+    guardrail_badge = "Stage 01 • Active Elicitation"
+    guardrail_msg = "Active Retrieval: Isolating your exact cognitive derailment node without direct answer leakage."
+else:
+    lbl_doubt = f"1. Problem Statement or Academic Doubt ({input_lang_name}):"
+    ph_doubt = "Enter your question or doubt here (Law, Economics, History, Literature, CS, Science)..."
+    lbl_concept = f"2. Core Concept / Law / Principle ({input_lang_name}):"
+    ph_concept = "e.g. Free Speech Limits, Price Elasticity, Structural Causality, Tragic Flaw, Stack Invariants, Work-Energy"
+    lbl_breakdown = f"4. Where Reasoning Breaks Down or Feels Stuck ({input_lang_name}):"
+    ph_breakdown = "e.g. The conclusion contradicts assumptions, or boundary conditions fail..."
+    lbl_steps = f"3. Your Step-by-Step Logic / Attempted Derivation So Far ({input_lang_name}):"
+    ph_steps = "Step 1: ...\nStep 2: ...\nStep 3: ..."
+    guardrail_badge = "Stage 01 • Active Elicitation"
+    guardrail_msg = "Active Retrieval: Isolating your exact cognitive derailment node without direct answer leakage."
+
 st.markdown(
-    "> 🛡️ **Pedagogical Guardrail:** The system enforces active cognitive retrieval. "
-    "To diagnose the exact derailment point, articulate your current understanding rather than seeking formula plugs."
+    f"""
+    <div class="saas-card">
+        <div class="saas-card-header">
+            <div>
+                <div class="saas-card-title">
+                    <span>📝 Stage 1: Problem Articulation & Mental Model</span>
+                </div>
+                <div style="font-size:0.8rem; color:#64748b; margin-top:0.25rem;">
+                    {guardrail_msg}
+                </div>
+            </div>
+            <span class="step-badge">{guardrail_badge}</span>
+        </div>
+    """,
+    unsafe_allow_html=True
 )
 
-with st.container():
-    doubt_input = st.text_area(
-        f"1. Problem Statement or Question Doubt ({input_lang_name}):",
-        value=st.session_state.form_doubt,
-        height=85,
-        placeholder="Enter the STEM question or doubt here..."
+doubt_input = st.text_area(
+    lbl_doubt,
+    value=st.session_state.form_doubt,
+    height=85,
+    placeholder=ph_doubt
+)
+
+col_e1, col_e2 = st.columns(2)
+with col_e1:
+    concept_input = st.text_input(
+        lbl_concept,
+        value=st.session_state.form_concept,
+        placeholder=ph_concept
+    )
+with col_e2:
+    breakdown_input = st.text_input(
+        lbl_breakdown,
+        value=st.session_state.form_breakdown,
+        placeholder=ph_breakdown
     )
 
-    col_e1, col_e2 = st.columns(2)
-    with col_e1:
-        concept_input = st.text_input(
-            f"2. What concept / law do you believe applies? ({input_lang_name})",
-            value=st.session_state.form_concept,
-            placeholder="e.g. Conservation of Mechanical Energy, Action-Reaction, Centripetal Force"
-        )
-    with col_e2:
-        breakdown_input = st.text_input(
-            f"4. Where do you feel your reasoning breaks down or gets stuck? ({input_lang_name})",
-            value=st.session_state.form_breakdown,
-            placeholder="e.g. The compression is too large, or forces cancel out..."
-        )
+steps_input = st.text_area(
+    lbl_steps,
+    value=st.session_state.form_steps,
+    height=105,
+    placeholder=ph_steps
+)
 
-    steps_input = st.text_area(
-        f"3. Your Step-by-Step Logic / Attempted Derivation So Far ({input_lang_name}):",
-        value=st.session_state.form_steps,
-        height=110,
-        placeholder="Step 1: ...\nStep 2: ...\nStep 3: ..."
-    )
+diagnose_btn = st.button(
+    f"🔍 Diagnose Reasoning & Generate Dual Maps ({output_lang_name})",
+    type="primary",
+    use_container_width=True
+)
 
-    diagnose_btn = st.button(f"🔍 Diagnose Reasoning in {output_lang_name}", type="primary", use_container_width=True)
+st.markdown("</div>", unsafe_allow_html=True)
 
 if diagnose_btn:
     if not doubt_input.strip() or not steps_input.strip():
@@ -445,7 +1089,8 @@ if diagnose_btn:
                 student_breakdown=breakdown_input,
                 learner_context=pedagogical_context,
                 preferred_language=lang_code,
-                student_name=profile.get("student_name", "Learner")
+                student_name=profile.get("student_name", "Learner"),
+                output_lang_name=output_lang_name
             )
 
             # Record identified misconception into longitudinal learner model
@@ -460,10 +1105,14 @@ if diagnose_btn:
             learner_model.save_profile(profile)
             st.session_state.current_profile = profile
 
-            # Synthesize Sarvam AI TTS speech
+            # Synthesize Sarvam AI TTS speech (synchronized with Bhasha Guru Blackboard)
             with st.spinner(f"Synthesizing speech via Sarvam AI ({output_lang_name}, speaker: {speaker})..."):
+                spoken_script = (
+                    diagnosis.get("board_storyboard", {}).get("full_spoken_transcript")
+                    or diagnosis["narration_script"]
+                )
                 audio_bytes, audio_msg, is_real = sarvam_tts.synthesize_speech_sarvam(
-                    text=diagnosis["narration_script"],
+                    text=spoken_script,
                     target_language_code=lang_code,
                     speaker=speaker,
                     model=tts_model,
@@ -484,22 +1133,32 @@ if diagnose_btn:
 if st.session_state.diagnosis_result:
     diag = st.session_state.diagnosis_result
 
-    st.divider()
-    st.markdown(f"### 🗺️ Stage 2: Mental Model Diagnosis & Dual Thought Maps ({output_lang_name})")
+    st.markdown(
+        f"""
+        <div class="saas-card">
+            <div class="saas-card-header">
+                <div class="saas-card-title">
+                    <span>🗺️ Stage 2: Mental Model Diagnosis & Comparative Flow Maps</span>
+                </div>
+                <span class="step-badge">Stage 02 • Visual Remediation ({output_lang_name})</span>
+            </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-    # Diagnostic Summary Box
+    # Diagnostic Summary Bento Box
     col_d1, col_d2 = st.columns([3, 2])
     with col_d1:
         st.markdown(
             f"""
-            <div class="misconception-callout">
-                <div style="font-weight:700; color:#991b1b; font-size:1.15rem;">
-                    ⚠️ Identified Cognitive Derailment Point: Step {diag.get('derailment_step', 2)}
+            <div class="derailment-banner">
+                <div class="derailment-title">
+                    <span>⚠️ Cognitive Derailment Point: Step {diag.get('derailment_step', 2)}</span>
                 </div>
-                <div style="margin-top:0.4rem; color:#7f1d1d; font-weight:600;">
+                <div class="derailment-concept">
                     Root Misconception: {diag.get('canonical_root_misconception')}
                 </div>
-                <div style="margin-top:0.35rem; color:#450a0a; font-size:0.95rem;">
+                <div class="derailment-desc">
                     {diag.get('derailment_reason')}
                 </div>
             </div>
@@ -513,9 +1172,13 @@ if st.session_state.diagnosis_result:
             prior_detail = same_concept_errors[-1].get("details", "")
             st.markdown(
                 f"""
-                <div class="longitudinal-callout">
-                    <b>🧠 Longitudinal Learner Memory Cross-Reference:</b><br>
-                    <i>"Notice how in your previous session on '{same_concept_errors[-1].get('problem_topic', 'this topic')}', you also encountered friction: {prior_detail[:100]}."</i>
+                <div class="longitudinal-banner">
+                    <div style="font-weight:700; display:flex; align-items:center; gap:0.4rem; margin-bottom:0.35rem;">
+                        <span>🧠 Longitudinal Memory Cross-Reference:</span>
+                    </div>
+                    <div>
+                        "Notice how in your previous session on '{same_concept_errors[-1].get('problem_topic', 'this topic')}', you also encountered: {prior_detail[:110]}."
+                    </div>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -523,75 +1186,127 @@ if st.session_state.diagnosis_result:
         else:
             st.markdown(
                 f"""
-                <div class="remediation-callout">
-                    <div style="font-weight:700; color:#065f46; font-size:1.05rem;">
-                        💡 Canonical Scaffolded Concept: {diag.get('canonical_concept')}
+                <div class="remediation-banner">
+                    <div style="font-weight:700; color:#065f46; font-size:1.05rem; display:flex; align-items:center; gap:0.4rem;">
+                        <span>💡 Canonical Scaffolded Concept</span>
                     </div>
-                    <div style="margin-top:0.3rem; color:#064e3b; font-size:0.92rem;">
-                        The breakthrough requires pivoting from formula plugging to first-principles constraint checking.
+                    <div style="font-weight:600; color:#047857; margin-top:0.35rem; font-size:0.95rem;">
+                        {diag.get('canonical_concept')}
+                    </div>
+                    <div style="color:#064e3b; margin-top:0.35rem; font-size:0.9rem; line-height:1.45;">
+                        The breakthrough requires pivoting from superficial heuristics to foundational principles and constraints.
                     </div>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
 
-    # Interactive Graphviz Visualization Tabs
+    # Segmented Tabbed Visualization
     map_tabs = st.tabs([
-        "📊 Dual Comparative Thought Map",
-        "🔴 Map A: Student's Actual Path",
-        "🟢 Map B: Remediated Conceptual Path",
-        "💻 Graphviz DOT Code"
+        "🧑‍🏫 Live Classroom Blackboard",
+        "📊 Comparative View",
+        "🔴 Student Path (Map A)",
+        "🟢 Remediated Path (Map B)"
     ])
 
     with map_tabs[0]:
-        st.caption("Visualizing the student's derailed reasoning flow (left, Coral) alongside the canonical scaffolded pathway (right, Emerald Green) with the Pedagogy Pivot bridge.")
+        storyboard = diag.get("board_storyboard")
+        if not storyboard:
+            # Generate storyboard instantaneously (0.03ms) so there is zero delay
+            storyboard = pedagogy_engine.generate_live_board_storyboard(
+                diag,
+                doubt=st.session_state.get("form_doubt", ""),
+                student_concept=st.session_state.get("form_concept", ""),
+                student_steps=st.session_state.get("form_steps", ""),
+                output_lang_name=output_lang_name
+            )
+            diag["board_storyboard"] = storyboard
+
+        blackboard_component.render_live_blackboard(
+            storyboard=storyboard,
+            audio_bytes=st.session_state.audio_bytes
+        )
+
+    with map_tabs[1]:
         try:
             st.graphviz_chart(diag["dot_comparative"], use_container_width=True)
         except Exception as e:
             st.error(f"Graphviz render error: {str(e)}")
 
-    with map_tabs[1]:
-        st.caption("Map A: Your submitted logic steps. Erroneous branches are highlighted in Coral/Red, while valid premises remain in Muted Slate.")
+    with map_tabs[2]:
         col_ga, col_ta = st.columns([3, 2])
         with col_ga:
             st.graphviz_chart(diag["dot_map_a"], use_container_width=True)
         with col_ta:
-            st.markdown("#### Node Breakdown (Student Path):")
+            st.markdown("<div style='font-size:0.85rem; font-weight:700; color:#475569; margin-bottom:0.5rem;'>Student Reasoning Path:</div>", unsafe_allow_html=True)
             for n in diag.get("student_nodes", []):
-                icon = "❌" if n.get("is_error") else "✔️"
-                badge = "<span class='badge-pill badge-coral'>Derailment</span>" if n.get("is_error") else "<span class='badge-pill badge-blue'>Premise</span>"
-                st.markdown(f"{icon} **Node {n.get('id')}:** {n.get('label')} {badge}", unsafe_allow_html=True)
-                if n.get("detail"):
-                    st.caption(f"↳ *{n['detail']}*")
+                badge_html = "<span class='badge-pill badge-coral'>Derailment</span>" if n.get("is_error") else "<span class='badge-pill badge-blue'>Premise</span>"
+                detail_html = f"<div class='node-card-detail'>↳ {n['detail']}</div>" if n.get("detail") else ""
+                st.markdown(
+                    f"""
+                    <div class="node-card">
+                        <div class="node-card-header">
+                            <span>Node {n.get('id')}: {n.get('label')}</span>
+                            {badge_html}
+                        </div>
+                        {detail_html}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
-    with map_tabs[2]:
-        st.caption("Map B: Scaffolded canonical reasoning journey. The Critical Pivot Node where the conceptual breakthrough occurs is highlighted in bold Emerald Green.")
+    with map_tabs[3]:
         col_gb, col_tb = st.columns([3, 2])
         with col_gb:
             st.graphviz_chart(diag["dot_map_b"], use_container_width=True)
         with col_tb:
-            st.markdown("#### Canonical Scaffold Steps:")
+            st.markdown("<div style='font-size:0.85rem; font-weight:700; color:#475569; margin-bottom:0.5rem;'>Canonical Scaffold Steps:</div>", unsafe_allow_html=True)
             for n in diag.get("remediation_nodes", []):
-                icon = "💡" if n.get("is_pivot") else "➡️"
-                badge = "<span class='badge-pill badge-green'>Critical Pivot</span>" if n.get("is_pivot") else "<span class='badge-pill badge-blue'>Canonical</span>"
-                st.markdown(f"{icon} **Step {n.get('id')}:** {n.get('label')} {badge}", unsafe_allow_html=True)
-                if n.get("detail"):
-                    st.caption(f"↳ *{n['detail']}*")
+                badge_html = "<span class='badge-pill badge-green'>Critical Pivot</span>" if n.get("is_pivot") else "<span class='badge-pill badge-blue'>Canonical</span>"
+                detail_html = f"<div class='node-card-detail'>★ {n['detail']}</div>" if n.get("detail") else ""
+                st.markdown(
+                    f"""
+                    <div class="node-card">
+                        <div class="node-card-header">
+                            <span>Step {n.get('id')}: {n.get('label')}</span>
+                            {badge_html}
+                        </div>
+                        {detail_html}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
-    with map_tabs[3]:
-        st.caption("Raw Graphviz DOT strings generated dynamically for the thought maps:")
-        st.code(diag["dot_comparative"], language="dot")
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
     # ---------------------------------------------------------
     # STAGE 3: Sarvam AI Multilingual Audio & Socratic Guidance
     # ---------------------------------------------------------
-    st.divider()
-    st.markdown(f"### 🎙️ Stage 3: Sarvam AI Voice Dictation & Socratic Checkpoint ({output_lang_name})")
+    st.markdown(
+        f"""
+        <div class="saas-card">
+            <div class="saas-card-header">
+                <div class="saas-card-title">
+                    <span>🎙️ Stage 3: Voice Walkthrough & Socratic Checkpoint</span>
+                </div>
+                <span class="step-badge">Stage 03 • Remediation ({output_lang_name})</span>
+            </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     audio_col1, audio_col2 = st.columns([2, 3])
     with audio_col1:
-        st.markdown(f"#### 🔊 Audio Walkthrough ({output_lang_name}):")
+        st.markdown(
+            f"""
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
+                <span style="font-weight:700; font-size:0.95rem; color:#0f172a;">🔊 Audio Walkthrough</span>
+                <span class="badge-pill badge-green">Speaker: {speaker.capitalize()}</span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
         if st.session_state.audio_bytes:
             st.audio(st.session_state.audio_bytes, format="audio/wav")
             if st.session_state.audio_status_msg:
@@ -601,8 +1316,12 @@ if st.session_state.diagnosis_result:
 
         if st.button("🔄 Re-synthesize Audio", use_container_width=True):
             with st.spinner("Regenerating Sarvam TTS audio..."):
+                spoken_script = (
+                    diag.get("board_storyboard", {}).get("full_spoken_transcript")
+                    or diag["narration_script"]
+                )
                 audio_bytes, audio_msg, is_real = sarvam_tts.synthesize_speech_sarvam(
-                    text=diag["narration_script"],
+                    text=spoken_script,
                     target_language_code=lang_code,
                     speaker=speaker,
                     model=tts_model,
@@ -613,17 +1332,38 @@ if st.session_state.diagnosis_result:
                 st.rerun()
 
     with audio_col2:
-        st.markdown(f"#### 📜 Spoken Narration Script ({output_lang_name}):")
-        st.info(f"🗣️ **Script:**\n\n\"{diag.get('narration_script')}\"")
+        st.markdown(
+            """
+            <div style="font-weight:700; font-size:0.95rem; color:#0f172a; margin-bottom:0.3rem;">
+                📜 Spoken Classroom Script (Bhasha Guru):
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        display_script = (
+            diag.get("board_storyboard", {}).get("full_spoken_transcript")
+            or diag.get("narration_script", "")
+        )
+        st.markdown(
+            f"""
+            <div class="narration-quote">
+                🗣️ "{display_script}"
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     # Socratic Checkpoint & Active Self-Correction
     st.markdown(
         f"""
-        <div class="socratic-box">
-            <div style="font-weight:700; color:#065f46; font-size:1.1rem; margin-bottom:0.5rem;">
-                🎯 Socratic Checkpoint: Self-Correct Node {diag.get('derailment_step', 2)}
+        <div class="socratic-challenge-box">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+                <div style="font-weight:700; color:#065f46; font-size:1.08rem; display:flex; align-items:center; gap:0.4rem;">
+                    <span>🎯 Socratic Self-Correction Challenge: Resolve Node {diag.get('derailment_step', 2)}</span>
+                </div>
+                <span class="badge-pill badge-green">Active Retrieval</span>
             </div>
-            <div style="font-size:1.02rem; color:#044e39; line-height:1.5;">
+            <div class="socratic-prompt-text">
                 {diag.get('socratic_prompt')}
             </div>
         </div>
@@ -631,17 +1371,36 @@ if st.session_state.diagnosis_result:
         unsafe_allow_html=True
     )
 
-    st.markdown("##### ✍️ Your Self-Correction Turn:")
+    is_output_pure_hindi = ("Hindi" in output_lang_name or "हिंदी" in output_lang_name) and ("Hinglish" not in output_lang_name and "हिंग्लिश" not in output_lang_name)
+    is_output_hinglish = ("Hinglish" in output_lang_name or "हिंग्लिश" in output_lang_name)
+
+    if is_output_pure_hindi:
+        lbl_turn = "##### ✍️ आपका स्व-सुधार प्रयास (हिंदी):"
+        lbl_socratic_reply = "हरे पिवट नोड पर विचार करें और बताएं कि आप अपने तर्क को कैसे सुधारेंगे:"
+        ph_socratic_reply = "उदा. पिवट नोड के अनुसार, मेरी प्रारंभिक पूर्वधारणा सीमांत शर्तों को पूरा नहीं करती थी क्योंकि..."
+        btn_socratic_reply = "🚀 समाधान सबमिट करें (हिंदी)"
+    elif is_output_hinglish:
+        lbl_turn = "##### ✍️ Your Self-Correction Turn (हिंग्लिश):"
+        lbl_socratic_reply = "Green Pivot Node par reflect karein aur explain karein ki aap logic kaise correct karenge:"
+        ph_socratic_reply = "e.g. Pivot node ke according, meri initial assumption governing conditions ko satisfy nahi kar rahi thi kyunki..."
+        btn_socratic_reply = "🚀 Submit Socratic Correction (हिंग्लिश)"
+    else:
+        lbl_turn = "##### ✍️ Your Self-Correction Turn:"
+        lbl_socratic_reply = "Reflect on the green Pivot Node and explain how you would correct your logic:"
+        ph_socratic_reply = "e.g. Based on the pivot node, my initial assumption overlooked the core constraint because..."
+        btn_socratic_reply = "🚀 Submit Socratic Correction"
+
+    st.markdown(lbl_turn)
     socratic_reply = st.text_area(
-        "Reflect on the green Pivot Node and explain how you would correct your logic:",
-        height=85,
-        placeholder="e.g. In step 2, mechanical energy is not conserved because friction does negative work, so W_friction must be subtracted before equating to spring energy...",
+        lbl_socratic_reply,
+        height=90,
+        placeholder=ph_socratic_reply,
         key="socratic_student_reply"
     )
 
     col_sub, col_skip = st.columns([2, 4])
     with col_sub:
-        submit_socratic = st.button("🚀 Submit Socratic Correction", type="primary", use_container_width=True)
+        submit_socratic = st.button(btn_socratic_reply, type="primary", use_container_width=True)
 
     if submit_socratic:
         if not socratic_reply.strip():
@@ -664,8 +1423,10 @@ if st.session_state.diagnosis_result:
         if st.session_state.socratic_solved:
             st.success(st.session_state.socratic_response_msg)
             st.markdown(
-                f"<span class='badge-pill badge-green'>🎉 Mastery Updated: '{diag.get('canonical_concept')}' upgraded!</span>",
+                f"<span class='badge-pill badge-green'>🎉 Longitudinal Mastery Updated: '{diag.get('canonical_concept')}' upgraded!</span>",
                 unsafe_allow_html=True
             )
         else:
             st.warning(st.session_state.socratic_response_msg)
+
+    st.markdown("</div>", unsafe_allow_html=True)
